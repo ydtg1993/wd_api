@@ -55,8 +55,9 @@ class RedisCache
      * @param string $node 节点
      * @param string $AddKey 管理的REDIS key
      */
-    public static function addCacheManageKey($node = '', $AddKey = '')
+    public static function addCacheManageKey($node = '', $AddKey = '',$uid = 0)
     {
+        $node = ($uid>0)?($node.$uid):$node;
         if (!Redis::sismember($node, $AddKey))
         {
             Redis::sadd($node, $AddKey);
@@ -68,13 +69,18 @@ class RedisCache
      * @param string $node
      * @param string $key
      */
-    public static function clearCacheManageAllKey($node = '')
+    public static function clearCacheManageAllKey($node = '',$uid = 0)
     {
+        $node = ($uid>0)?($node.$uid):$node;
         $keys = Redis::smembers($node);
         foreach ($keys as $v)
         {
             Redis::del($v);
             Redis::srem($node,$v);
+        }
+        if($uid > 0)
+        {
+            Redis::del($node);//并且删掉节点
         }
     }
 
@@ -87,7 +93,7 @@ class RedisCache
      * @param bool $isCache
      * @return bool
      */
-    public static function getCacheData($node,$key,$fun = '',$keyData = array(),$isCache = true)
+    public static function getCacheData($node,$key,$fun = '',$keyData = array(),$isCache = true,$uid = 0)
     {
         $cacheConf = self::getCacheConfig();
         $redisKey = self::getKey($key,$keyData);
@@ -107,9 +113,9 @@ class RedisCache
             $redata = is_array($redata) ||is_object($redata) ?json_encode($redata):
                 $redata;
             //加入节点管理器
-            self::addCacheManageKey($node,$key);
-            Redis::set($redisKey,json_encode($redata),'EX',self::getTime($node,$key));
-            return $redata;
+            self::addCacheManageKey($node,$key,$uid);
+            Redis::set($redisKey,$redata,'EX',self::getTime($node,$key));
+            return json_decode($redata,true);
         }
         //return $redata ;
         return json_decode($redata,true) ;

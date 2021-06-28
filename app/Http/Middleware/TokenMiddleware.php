@@ -24,10 +24,24 @@ class TokenMiddleware
      */
     public function handle($request, Closure $next, $guard = null)
     {
+        $error  = [
+            'code' => 2000,
+            'msg' => 'token error',
+            'data' => (object)[],
+        ];
         $token = $request->header('token');
         $tokenData = Common::parsingToken($token);//解析token
+        if(empty($tokenData)){
+            $reData['msg'] = 'token error';
+            return response()->json($error,200);
+        }
         $request->tokenData = $tokenData;
-        $request->userData = ['uid'=>$tokenData['uid'],'ip'=>$request->getClientIp()];//是否token校验IP
+        $request->userData = [
+            'uid'=>$tokenData['UserBase']['uid'],
+            'u_number'=>$tokenData['UserBase']['number'],
+            'ip'=>$request->getClientIp()
+        ];//是否token校验IP
+
         return $next($request);
     }
 }

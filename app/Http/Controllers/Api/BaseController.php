@@ -10,6 +10,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Logic\BaseError;
+use App\Services\Logic\Common;
 
 class BaseController extends Controller
 {
@@ -27,27 +28,7 @@ class BaseController extends Controller
      */
     public function paramFilter(array $temps,array $param)
     {
-        //类型检查
-        $data = [];
-        foreach ($temps as $k=>$v)
-        {
-            if(isset($param[$k]))
-            {
-                if(settype($param[$k],gettype($v)))
-                {
-                    $data[$k] = $param[$k];
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                $data[$k] = $v;
-            }
-        }
-        return $data;
+        return Common::paramFilter($temps,$param);
     }
 
     /**
@@ -58,14 +39,7 @@ class BaseController extends Controller
      */
     public function haveToParam(array $temps,array $param)
     {
-        foreach ($temps as $k=>$v)
-        {
-            if(!isset($param[$k]))
-            {
-                return false;
-            }
-        }
-        return true;
+        return Common::haveToParam($temps,$param);
     }
 
     /**

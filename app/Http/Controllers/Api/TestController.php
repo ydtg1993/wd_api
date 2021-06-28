@@ -9,9 +9,11 @@
 namespace App\Http\Controllers\Api;
 
 
+use App\Providers\EmailOrSms\Config\HuangDouBanSmsGateWay;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 
 class TestController extends BaseController
 {
@@ -33,6 +35,19 @@ class TestController extends BaseController
         //$request->userData['uid'] = 0;
 
         return $this->sendJson($redata);
+    }
+
+
+    public function testSendSms(){
+
+        App::make('EmailService')->send();
+        exit;
+//        pr(App::make('HDBSmsGateWay'));
+//        exit;
+
+            App::make('SmsService')->setSmsTo('17760992641')->registerMessage(App::make(''))
+                ->send();
+
     }
 
 }

@@ -62,6 +62,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'allow_origin' => \App\Http\Middleware\EnableCrossRequestMiddleware::class,//跨域
         'token' => \App\Http\Middleware\TokenMiddleware::class,//TOKEN
+        'verify_captcha' => \App\Http\Middleware\VerifyCaptcha::class,//TOKEN
     ];
 
     /**

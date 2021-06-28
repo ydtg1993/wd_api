@@ -89,6 +89,14 @@ return [
             'driver' => 'errorlog',
             'level' => 'debug',
         ],
+
+
+        'emailOrSms' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/emailOrSms/emailOrSms.log'),
+            'level' => 'error',
+            'days' => 30,
+        ],
     ],
 
 ];
