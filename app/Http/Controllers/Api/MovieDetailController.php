@@ -41,8 +41,8 @@ class MovieDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
             $movie = Movie::where('movie.id', $request->input('id'))
-                ->leftJoin('movie_director_associate', 'movie.id', '=', 'movie_actor_associate.mid')
-                ->leftJoin('movie_film_companies_associate', 'movie.id', '=', 'movie_actor_associate.mid')
+                ->leftJoin('movie_director_associate', 'movie.id', '=', 'movie_director_associate.mid')
+                ->leftJoin('movie_film_companies_associate', 'movie.id', '=', 'movie_film_companies_associate.mid')
                 ->leftJoin('movie_series_associate', 'movie.id', '=', 'movie_series_associate.mid')
                 ->with('labels')
                 ->with('actors')
@@ -187,10 +187,9 @@ class MovieDetailController extends BaseController
         foreach ($movie->actors as $a){
             $actors[] = $a->aid;
         }
-        $limit = min(count($actors),15);
-        shuffle($actors);
-        $actors = array_slice($actors,0,$limit);
         $movie_ids = MovieActorAss::whereIn('aid',$actors)->pluck('mid')->all();
+        shuffle($movie_ids);
+        $movie_ids = array_slice($movie_ids,0,min(count($movie_ids),15));
 
         $movies = Movie::whereIn('id',$movie_ids)->get();
         $data = [];
@@ -214,10 +213,9 @@ class MovieDetailController extends BaseController
         foreach ($movie->labels as $l) {
             $labels[] = $l->cid;
         }
-        $limit = min(count($labels),15);
-        shuffle($labels);
-        $labels = array_slice($labels,0,$limit);
         $movie_ids = MovieLabelAss::whereIn('cid',$labels)->pluck('mid')->all();
+        shuffle($movie_ids);
+        $movie_ids = array_slice($movie_ids,0,min(count($movie_ids),2));
 
         $movies = Movie::whereIn('id',$movie_ids)->get();
         $data = [];
