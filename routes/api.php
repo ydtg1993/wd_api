@@ -75,3 +75,13 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function (
     Route::post('number/detail', 'NumberDetailController@index');
     Route::post('number/products', 'NumberDetailController@products');
 });
+
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+    Route::post('series/detail', 'SeriesDetailController@index');
+    Route::post('series/products', 'SeriesDetailController@products');
+});
+
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+    Route::post('company/detail', 'FilmCompaniesDetailController@index');
+    Route::post('company/products', 'FilmCompaniesDetailController@products');
+});
