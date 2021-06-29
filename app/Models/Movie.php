@@ -10,12 +10,12 @@ class Movie extends Model
     protected $table = 'movie';
 
     /**
-     * ¸ñÊ½»¯Ó°Æ¬ÁÐ±íÊý¾Ý
+     * æ ¼å¼åŒ–å½±ç‰‡åˆ—è¡¨æ•°æ®
      * @param array $data
      */
     public static function formatList($data = [])
     {
-        $is_new_comment_day = ((strtotime($data['new_comment_time']??'') - strtotime(date('Y-m-d 00:00:00'))) >= 0)?1:2 ;//×îÐÂÆÀÂÛÊ±¼ä¼õÈ¥ ½ñÈÕ¿ªÊ¼Ê±¼ä Èç¹û´óÓÚ0 Ôò½ñÈÕÐÂÆÀÂÛ
+        $is_new_comment_day = ((strtotime($data['new_comment_time']??'') - strtotime(date('Y-m-d 00:00:00'))) >= 0)?1:2 ;//æœ€æ–°è¯„è®ºæ—¶é—´å‡åŽ» ä»Šæ—¥å¼€å§‹æ—¶é—´ å¦‚æžœå¤§äºŽ0 åˆ™ä»Šæ—¥æ–°è¯„è®º
         $is_new_comment_day = ($is_new_comment_day == 2)?(
         (((strtotime($data['new_comment_time']??'') - (strtotime(date('Y-m-d 00:00:00')) -(60*60*24) )) >= 0)?3:2)
         ):1;
@@ -35,12 +35,12 @@ class Movie extends Model
         $reData['release_time'] = $data['release_time']??'';
         $reData['created_at'] = $data['created_at']??'';
 
-        $reData['is_download'] = $data['is_download']??1;//×´Ì¬ 1.²»¿ÉÏÂÔØ  2.¿ÉÏÂÔØ
-        $reData['is_subtitle'] = $data['is_subtitle']??1;//×´Ì¬ 1.²»º¬×ÖÄ»  2.º¬×ÖÄ»
-        $reData['is_hot'] = $data['is_hot']??1;//×´Ì¬ 1.ÆÕÍ¨  2.ÈÈÃÅ
-        $reData['is_new_comment'] = $is_new_comment_day;//×´Ì¬ 1.½ñÈÕÐÂÆÀ  2.ÎÞ×´Ì¬ 3.×òÈÕÐÂÆÀ
+        $reData['is_download'] = $data['is_download']??1;//çŠ¶æ€ 1.ä¸å¯ä¸‹è½½  2.å¯ä¸‹è½½
+        $reData['is_subtitle'] = $data['is_subtitle']??1;//çŠ¶æ€ 1.ä¸å«å­—å¹•  2.å«å­—å¹•
+        $reData['is_hot'] = $data['is_hot']??1;//çŠ¶æ€ 1.æ™®é€š  2.çƒ­é—¨
+        $reData['is_new_comment'] = $is_new_comment_day;//çŠ¶æ€ 1.ä»Šæ—¥æ–°è¯„  2.æ— çŠ¶æ€ 3.æ˜¨æ—¥æ–°è¯„
 
-        $reData['is_flux_linkage'] = $is_flux_linkage_day;//×´Ì¬ 1.½ñÈÕÐÂÖÖ  2.ÎÞ×´Ì¬ 3.×òÈÕÐÂÖÖ
+        $reData['is_flux_linkage'] = $is_flux_linkage_day;//çŠ¶æ€ 1.ä»Šæ—¥æ–°ç§  2.æ— çŠ¶æ€ 3.æ˜¨æ—¥æ–°ç§
         $reData['comment_num'] = $data['comment_num']??0;
         $reData['score'] = $data['score']??0;
         $reData['small_cover'] = $small_cover == ''?'':(Common::getImgDomain().$small_cover);
@@ -48,5 +48,15 @@ class Movie extends Model
         $reData['big_cove'] = $big_cove == ''?'':(Common::getImgDomain().$big_cove);
 
         return $reData;
+    }
+
+    public function labels()
+    {
+        return $this->hasMany(MovieLabelAss::class,'mid','id');
+    }
+
+    public function actors()
+    {
+        return $this->hasMany(MovieActorAss::class,'mid','id');
     }
 }

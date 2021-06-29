@@ -26,4 +26,9 @@ class MovieActor extends Model
         $reData['like_sum'] = $data['like_sum']??0;
         return $reData;
     }
+
+    public function names()
+    {
+        return $this->hasMany(MovieActorName::class,'aid','id');
+    }
 }

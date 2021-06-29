@@ -51,3 +51,27 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function (
     Route::get('conf/getAllConf', 'ConfController@getALlConf');
     Route::get('conf/getOneConf/{type}', 'ConfController@getOneConf');
 });
+
+
+//影片详情页
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+    Route::post('movie/detail', 'MovieDetailController@index');
+    Route::post('movie/show', 'MovieDetailController@show');
+    Route::post('movie/guess', 'MovieDetailController@guess');
+    Route::post('movie/comment', 'MovieDetailController@comment');
+});
+
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+    Route::post('actor/detail', 'ActorDetailController@index');
+    Route::post('actor/products', 'ActorDetailController@products');
+});
+
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+    Route::post('director/detail', 'DirectorDetailController@index');
+    Route::post('director/products', 'DirectorDetailController@products');
+});
+
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+    Route::post('number/detail', 'NumberDetailController@index');
+    Route::post('number/products', 'NumberDetailController@products');
+});
