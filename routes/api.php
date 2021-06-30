@@ -59,6 +59,7 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function (
     Route::post('movie/show', 'MovieDetailController@show');
     Route::post('movie/guess', 'MovieDetailController@guess');
     Route::post('movie/comment', 'MovieDetailController@comment');
+    Route::post('movie/reply', 'MovieDetailController@reply');
 });
 
 Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {

@@ -173,6 +173,39 @@ class MovieDetailController extends BaseController
         }
     }
 
+    public function reply(Request $request)
+    {
+        try {
+            $validator = Validator()->make($request->all(), [
+                'id' => 'required|numeric',
+                'uid' => 'required|numeric',
+                'comment' => 'required|string|min:6|max:255',
+                'comment_id' => 'required|numeric'
+            ]);
+            if ($validator->fails()) {
+                throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
+            }
+
+            $res = MovieComment::add(
+                $request->input('uid'),
+                $request->input('id'),
+                $request->input('comment'),
+                $request->input('comment_id'));
+
+            if ($res == false) {
+                return $this->sendError('回复失败');
+            }
+            Movie::where('id', $request->input('id'))->update([
+                'new_comment_time' => date('Y-m-d H:i:s'),
+                'comment_num' => DB::raw('comment_num+1')]);
+
+            return $this->sendJson([]);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
+            return $this->sendError($e->getMessage());
+        }
+    }
+
     public function show(Request $request)
     {
         $validator = Validator()->make($request->all(), [

@@ -24,16 +24,12 @@ class MovieComment extends Model
         $commentObj->cid = $cid;
         $commentObj->comment = $comment;
         $commentObj->status = 1;
-        if($cid == 0)
-        {
+        if($cid == 0) {
             $commentObj->reply_uid = 0;
             $commentObj->type = 1;
-        }
-        else
-        {
+        } else {
             $commentObjCid = MovieComment::find($cid);
-            if(!$commentObjCid)
-            {
+            if(!$commentObjCid) {
                 return false;
             }
 
@@ -44,6 +40,5 @@ class MovieComment extends Model
 
         //todo  清除影片的评论缓存 还需要补充
         return $commentObj->id;
-
     }
 }
