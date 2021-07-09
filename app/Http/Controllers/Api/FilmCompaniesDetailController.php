@@ -15,6 +15,7 @@ use App\Models\MovieFilmCompaniesAss;
 use App\Models\MovieNumberAss;
 use App\Models\MovieSeries;
 use App\Models\MovieSeriesAss;
+use App\Models\UserLikeFilmCompanies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -38,6 +39,11 @@ class FilmCompaniesDetailController extends BaseController
 
             $number = MovieFilmCompanies::where('id',$request->input('id'))->first();
             $data = MovieFilmCompanies::formatList($number);
+            $data['is_like'] = 0;
+            if($request->has('uid') &&
+                UserLikeFilmCompanies::where(['uid'=>$request->input('uid'),'film_companies_id'=>$request->input('id')])->exists()){
+                $data['is_like'] = 1;
+            }
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
@@ -50,14 +56,15 @@ class FilmCompaniesDetailController extends BaseController
         try {
             $validator = Validator()->make($request->all(), [
                 'id' => 'required|numeric',
-                'page' => 'required|int'
+                'page' => 'required|int',
+                'pageSize'=> 'required|int',
             ]);
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
             $page = $request->input('page');
-            $pageSize = 30;
+            $pageSize = $request->input('pageSize');
             $skip = $pageSize * ($page - 1);
 
             $movie_ids = MovieFilmCompaniesAss::where('film_companies_id',$request->input('id'))->pluck('mid')->all();
@@ -92,13 +99,18 @@ class FilmCompaniesDetailController extends BaseController
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
             }
-
+            $sum = $movies->count();
             $movies = $movies->skip($skip)
                 ->take($pageSize)
                 ->get();
-            $data = [];
+            $data = [
+                'page'=>$page,
+                'pageSize'=>$pageSize,
+                'sum'=>$sum,
+                'list'=>[]
+            ];
             foreach ($movies as $movie) {
-                $data[] = Movie::formatList($movie);
+                $data['list'][] = Movie::formatList($movie);
             }
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());

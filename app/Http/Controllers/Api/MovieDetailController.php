@@ -18,6 +18,8 @@ use App\Models\MovieFilmCompanies;
 use App\Models\MovieLabel;
 use App\Models\MovieLabelAss;
 use App\Models\MovieSeries;
+use App\Models\UserSeenMovie;
+use App\Models\UserWantSeeMovie;
 use App\Services\Logic\Common;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,8 +86,6 @@ class MovieDetailController extends BaseController
                 "score" => $movie->score,
                 "score_people" => $movie->score_people,
                 "comment_num" => $movie->comment_num,
-                "wan_see" => $movie->wan_see,
-                "seen" => $movie->seen,
                 "flux_linkage_num" => $movie->flux_linkage_num,
                 "flux_linkage" => (array)json_decode($movie->flux_linkage, true),
                 "flux_linkage_time" => $movie->flux_linkage_time,
@@ -94,8 +94,18 @@ class MovieDetailController extends BaseController
                 'actors' => $actors,
                 'director' => $director,
                 'company' => $company,
-                'series' => $series
+                'series' => $series,
+                'seen' => 0,
+                'want_see' => 0
             ];
+            if($request->has('uid')){
+                if(UserSeenMovie::where(['uid'=>$request->input('uid'),'mid'=>$request->input('id')])->exists()) {
+                    $data['seen'] = 1;
+                }
+                if(UserWantSeeMovie::where(['uid'=>$request->input('uid'),'mid'=>$request->input('id')])->exists()){
+                    $data['want_see'] = 1;
+                }
+            }
             $map = [];
             foreach ((array)json_decode($movie->map, true) as $m){
                 $map[] = $m == '' ? '':Common::getImgDomain().$m;
@@ -118,17 +128,18 @@ class MovieDetailController extends BaseController
         try {
             $validator = Validator()->make($request->all(), [
                 'id' => 'required|numeric',
-                'page' => 'required|int'
+                'page' => 'required|int',
+                'pageSize'=> 'required|int',
             ]);
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
             $page = $request->input('page');
-            $pageSize = 30;
+            $pageSize = $request->input('pageSize');
             $skip = $pageSize * ($page - 1);
 
-            $comments = MovieComment::where([
+            $model = MovieComment::where([
                 'movie_comment.mid'=>$request->input('id'),
                 'movie_comment.status'=>1])
                 ->orderBy('movie_comment.type')
@@ -136,8 +147,10 @@ class MovieDetailController extends BaseController
                 ->leftJoin('user_client','user_client.id','=','movie_comment.uid')
                 ->select('movie_comment.*',
                     'user_client.nickname as user_client_nickname',
-                    'user_client.avatar as user_client_avatar')
-                ->skip($skip)
+                    'user_client.avatar as user_client_avatar');
+
+            $sum = $model->count();
+            $comments = $model->skip($skip)
                 ->take($pageSize)
                 ->get();
 
@@ -166,7 +179,12 @@ class MovieDetailController extends BaseController
                 }
             }
 
-            return $this->sendJson($data);
+            return $this->sendJson([
+                'page'=>$page,
+                'pageSize'=>$pageSize,
+                'sum'=>$sum,
+                'list'=>$data
+            ]);
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());

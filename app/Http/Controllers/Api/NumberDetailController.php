@@ -14,6 +14,7 @@ use App\Models\MovieActor;
 use App\Models\MovieActorAss;
 use App\Models\MovieNumber;
 use App\Models\MovieNumberAss;
+use App\Models\UserLikeNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,11 @@ class NumberDetailController extends BaseController
 
             $number = MovieNumber::where('id',$request->input('id'))->first();
             $data = MovieNumber::formatList($number);
+            $data['is_like'] = 0;
+            if($request->has('uid') &&
+                UserLikeNumber::where(['uid'=>$request->input('uid'),'nid'=>$request->input('id')])->exists()){
+                $data['is_like'] = 1;
+            }
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
@@ -49,14 +55,15 @@ class NumberDetailController extends BaseController
         try {
             $validator = Validator()->make($request->all(), [
                 'id' => 'required|numeric',
-                'page' => 'required|int'
+                'page' => 'required|int',
+                'pageSize'=> 'required|int',
             ]);
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
             $page = $request->input('page');
-            $pageSize = 30;
+            $pageSize = $request->input('pageSize');
             $skip = $pageSize * ($page - 1);
 
             $movie_ids = MovieNumberAss::where('nid',$request->input('id'))->pluck('mid')->all();
@@ -69,35 +76,40 @@ class NumberDetailController extends BaseController
 
             //filter
             switch ($request->input('filter')) {
-                case 'subtitle':
+                case 1:
                     $movies = $movies->where('movie.is_subtitle', 2);
                     break;
-                case 'download':
+                case 2:
                     $movies = $movies->where('movie.is_download', 2);
                     break;
-                case 'comment':
+                case 3:
                     $movies = $movies->where('movie.new_comment_time', '>=', date('Y-m-d 00:00:00'));
                     break;
             }
             //sort
             switch ($request->input('sort')){
-                case 'release':
+                case 1:
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
-                case 'linkage':
+                case 2:
                     $movies = $movies->orderBy('movie.flux_linkage_time', 'DESC');
                     break;
                 default:
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
             }
-
+            $sum = $movies->count();
             $movies = $movies->skip($skip)
                 ->take($pageSize)
                 ->get();
-            $data = [];
+            $data = [
+                'page'=>$page,
+                'pageSize'=>$pageSize,
+                'sum'=>$sum,
+                'list'=>[]
+            ];
             foreach ($movies as $movie) {
-                $data[] = Movie::formatList($movie);
+                $data['list'][] = Movie::formatList($movie);
             }
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
