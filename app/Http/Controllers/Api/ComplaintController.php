@@ -32,6 +32,7 @@ class ComplaintController extends BaseController
 
             $validator = Validator()->make($request->all(), [
                 'topic'  => 'required|string',
+                'avid'  => 'required|string',
                 'title'  => 'required|string',
                 'content' => 'required',
                 'connect' => 'required|string',

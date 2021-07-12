@@ -12,7 +12,7 @@ use App\Services\Logic\Common;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
-class TokenMiddleware
+class TokensMiddleware
 {
     /**
      * Handle an incoming request.
@@ -32,17 +32,25 @@ class TokenMiddleware
         $token = $request->header('token');
         $tokenData = Common::parsingToken($token);//解析token
         if(empty($tokenData)){
-            $reData['msg'] = 'token error';
-            return response()->json($error,200);
+            $request->tokenData = null;
+            $request->userData = [
+                'uid'=>0,//没有token 代表未登录 0 表示未登录
+                'u_number'=>'',
+                'ip'=>$request->getClientIp()
+            ];//是否token校验IP
+            return $next($request);
         }
         $request->tokenData = $tokenData;
         $request->userData = [
-            'uid'=>$tokenData['UserBase']['uid'],
-            'nickname'=>$tokenData['UserBase']['nickname'],
-            'avatar'=>$tokenData['UserBase']['avatar'],
+            'uid'=>$tokenData['UserBase']['uid']??0,
+            'u_number'=>$tokenData['UserBase']['number']??'',
             'ip'=>$request->getClientIp()
         ];//是否token校验IP
-
+        /*$request->userData = [
+            'uid'=>1,
+            'u_number'=>'',
+            'ip'=>$request->getClientIp()
+        ];//是否token校验IP*/
         return $next($request);
     }
 }

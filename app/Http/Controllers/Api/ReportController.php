@@ -40,7 +40,7 @@ class ReportController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
             $data['uid'] = $request->userData['uid'];
-            $data['u_number'] = $request->userData['u_number'];
+            $data['u_number'] = $request->userData['nickname'];
             $saveData = array_merge($validator->validated(),$data);
             $ret = Report::saveReport($saveData);
             if($ret->id <= 0){

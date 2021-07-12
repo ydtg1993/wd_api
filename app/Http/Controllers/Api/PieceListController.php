@@ -8,62 +8,63 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\MovieLog;
+use App\Models\MoviePieceList;
 use App\Models\UserLikeUser;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use App\Services\Logic\User\Notes\NotesLogic;
+use App\Services\Logic\User\Notes\PieceListLogic;
 use App\Services\Logic\User\UserInfoLogic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 
-class UserActionController extends BaseController
+class PieceListController extends BaseController
 {
 
     /**
-     * 添加用户动作
+     * 获取片单详情
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function add(Request $request)
+    public function getInfo(Request $request)
     {
         $data = $request->all();
-        $type = $data['action_type']??0;
+        $pid = $data['pid']??0;
         $data['uid'] = $request->userData['uid']??0;
-        if($type <= 0)
+        if($pid <= 0)
         {
-            return $this->sendError('无效的动作类型！');
+            return $this->sendError('无效的片单！');
         }
 
-        $userAction = new NotesLogic();
-        $reData = $userAction->addNotes($data,$type);
-        if(($userAction->getErrorInfo()->code??500) != 200)
+        $pieceListObj = new PieceListLogic();
+        $reData = $pieceListObj->getInfo($pid);
+        if(($pieceListObj->getErrorInfo()->code??500) != 200)
         {
-            return $this->sendError($userAction->getErrorInfo()->msg??'未知错误!',$userAction->getErrorInfo()->code??500);
+            return $this->sendError($pieceListObj->getErrorInfo()->msg??'未知错误!',$pieceListObj->getErrorInfo()->code??500);
         }
 
-        return $this->sendJson(['data'=>$reData]);
+        MoviePieceList::where('id',$pid)->increment('pv_browse_sum');//记录浏览次数
+        return $this->sendJson($reData);
     }
 
     /**
-     * 获取用户动作列表
+     * 获取片单影片列表
      * @param Request $request
      */
-    public function getList(Request $request)
+    public function getMovieList(Request $request)
     {
         $data = $request->all();
-        $type = $data['action_type']??0;
-        if($type <= 0)
+        $pid = $data['pid']??0;
+        if($pid <= 0)
         {
-            return $this->sendError('无效的动作类型！');
+            return $this->sendError('无效的片单信息！');
         }
+        $pieceListObj = new PieceListLogic();
+        $reData = $pieceListObj->getMovieList($data);
 
-        $data['uid'] = $request->userData['uid']??0;
-        $userAction = new NotesLogic();
-        $reData = $userAction->getNotesList($data,$type);
-        if(($userAction->getErrorInfo()->code??500) != 200)
+        if(($pieceListObj->getErrorInfo()->code??500) != 200)
         {
-            return $this->sendError($userAction->getErrorInfo()->msg??'未知错误!',$userAction->getErrorInfo()->code??500);
+            return $this->sendError($pieceListObj->getErrorInfo()->msg??'未知错误!',$pieceListObj->getErrorInfo()->code??500);
         }
 
         return $this->sendJson($reData);
@@ -109,13 +110,13 @@ class UserActionController extends BaseController
         $reData['user_id'] = $user_id;
         $reData['user_attention'] = $reTempData== 1 ?1:2;
 
-        return $this->sendJson(['userInfo'=>$reData]);
+        return $this->sendJson($reData);
 
     }
 
 
     /**
-     * 获取用户主页信息 用户动作信息 获取用户主页信息 用户动作信息-近期浏览
+     * 获取用户主页信息 用户动作信息-近期浏览
      * @param Request $request
      */
     public function getHomeUserAction(Request $request)
@@ -139,27 +140,71 @@ class UserActionController extends BaseController
         return $this->sendJson($reData);
     }
 
-    /**
-     * 添加影片浏览记录
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function addCountMovie(Request $request)
-    {
-        $data = $request->all();
-        $mid = $data['mid']??0;
-        return $this->sendJson(['id'=>MovieLog::addMovieBrowse($mid)]);
-    }
 
     /**
-     * 添加演员浏览记录
+     * 获取片单列表
+     * @param Request $request
+     */
+    public function getPieceList(Request $request)
+    {
+        $template = ['type'=>1];
+        $data = $request->all();
+        if(!$this->haveToParam($template,$data))
+        {
+            return $this->sendJson('',202);
+        }
+
+        $template['page'] = 1;
+        $template['pageSize'] = 10;
+        $data = $this->paramFilter($template,$data);
+        if($data  === false)
+        {
+            return $this->sendJson('',201);
+        }
+
+        $pieceListObj = new PieceListLogic();
+        $reData = $pieceListObj->getList($data);
+
+        if(($pieceListObj->getErrorInfo()->code??500) != 200)
+        {
+            return $this->sendError($pieceListObj->getErrorInfo()->msg??'未知错误!',$pieceListObj->getErrorInfo()->code??500);
+        }
+
+        return $this->sendJson($reData);
+
+    }
+
+
+    /**
+     * 添加或者给片单删除一个影片
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function addCountActor(Request $request)
+    public function addMovie(Request $request)
     {
+        $template = ['mid'=>0,'pid'=>0,'status'=>1];
         $data = $request->all();
-        $aid = $data['aid']??0;
-        return $this->sendJson(['id'=>MovieLog::addMovieBrowse($aid)]);
+        if(!$this->haveToParam($template,$data))
+        {
+            return $this->sendJson('',202);
+        }
+
+        $data = $this->paramFilter($template,$data);
+        if($data  === false)
+        {
+            return $this->sendJson('',201);
+        }
+
+        $data['uid'] = $request->userData['uid']??0;
+
+        $pieceListObj = new PieceListLogic();
+        $reData = $pieceListObj->addMovie($data);
+
+        if(($pieceListObj->getErrorInfo()->code??500) != 200)
+        {
+            return $this->sendError($pieceListObj->getErrorInfo()->msg??'未知错误!',$pieceListObj->getErrorInfo()->code??500);
+        }
+
+        return $this->sendJson(['id'=>$reData]);
     }
 }

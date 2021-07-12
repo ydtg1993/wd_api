@@ -9,11 +9,18 @@
 namespace App\Http\Controllers\Api;
 
 
+use App\Events\UserEvent\UserCommentEvent;
+use App\Events\UserEvent\UserDislikeEvent;
+use App\Events\UserEvent\UserLikeEvent;
+use App\Events\UserEvent\UserReplyEvent;
+use App\Events\UserEvent\UserReportEvent;
 use App\Providers\EmailOrSms\Config\HuangDouBanSmsGateWay;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Redis;
 
 class TestController extends BaseController
 {
@@ -45,9 +52,20 @@ class TestController extends BaseController
 //        pr(App::make('HDBSmsGateWay'));
 //        exit;
 
-            App::make('SmsService')->setSmsTo('17760992641')->registerMessage(App::make(''))
+            App::make('SmsService')->setSmsTo('xxxxxxxxx')->registerMessage(App::make(''))
                 ->send();
 
+    }
+
+    public function testEvent(Request $request){
+        $redis = Redis::connection();
+        $res = $redis->mget(['Conf:friend_link','Conf:download_setting']);
+        pr($res);
+       // \event(new UserLikeEvent($request->all()));
+        //var_dump(\event(new UserDislikeEvent($request->all())));
+        //var_dump(\event(new UserReportEvent($request->all())));
+        //var_dump(\event(new UserReplyEvent($request->all())));
+        //var_dump(\event(new UserCommentEvent($request->all())));
     }
 
 }

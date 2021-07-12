@@ -29,7 +29,7 @@ class AnnouncementController extends BaseController
     {
         try {
             $validator = Validator()->make($request->all(), [
-                'type' => 'required|in:1,2,3',
+                'type' => 'required|int',
                 'page' => 'required|int',
             ]);
 

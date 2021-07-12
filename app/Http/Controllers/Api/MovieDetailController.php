@@ -21,6 +21,7 @@ use App\Models\MovieSeries;
 use App\Models\UserSeenMovie;
 use App\Models\UserWantSeeMovie;
 use App\Services\Logic\Common;
+use App\Services\Logic\Movie\CommentActionLogic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -160,6 +161,8 @@ class MovieDetailController extends BaseController
                     'id'=>$comment->id,
                     'comment'=>$comment->comment,
                     'nickname'=>$comment->nickname,
+                    'like'=>$comment->like,
+                    'dislike'=>$comment->dislike,
                     'avatar'=>$comment->avatar,
                     'type'=>$comment->type,
                     'reply_uid'=>$comment->reply_uid,
@@ -275,4 +278,38 @@ class MovieDetailController extends BaseController
         }
         return $this->sendJson($data);
     }
+
+    /**
+     * 赞踩
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function action(Request $request){
+        try {
+            $validator = Validator()->make($request->all(), [
+                'id' => 'required|int',
+                'action' => 'required|string|in:like,dislike',
+            ]);
+            if ($validator->fails()) {
+                throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
+            }
+            $id = $validator->validated()['id'];
+            $comment = MovieComment::find($id);
+            if(empty($comment) || !$comment->exists){
+                throw  new \Exception('非法参数');
+            }
+            $action = [
+                'target_id'=>$comment['id'],
+                'id'=>$comment['id'],
+                'owner_id'=>$comment['uid'],
+                'action'=>$validator->validated()['action'],
+            ];
+            CommentActionLogic::userAction(array_merge($request->userData,$action));
+            return $this->sendJson([]);
+        }catch (\Exception $e){
+            Log::error($e->getMessage().'_'.$e->getFile().'_'.$e->getLine());
+            return $this->sendError($e->getMessage());
+        }
+    }
+
 }

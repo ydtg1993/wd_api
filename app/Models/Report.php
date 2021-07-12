@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Events\UserEvent\UserReportEvent;
+use App\Services\Logic\Movie\CommentActionLogic;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -25,6 +27,15 @@ class Report extends Model
     public static function saveReport( $data ){
         $data['uuid'] = Str::random(32);
         return static::create($data);
+    }
+    //统计
+    public static function boot(){
+        parent::boot();
+        static::created(function ($model){
+            CommentActionLogic::userReport([
+                'owner_id'=>$model->uid
+            ]);
+        });
     }
 
 }

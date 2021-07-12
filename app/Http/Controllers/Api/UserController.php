@@ -69,6 +69,8 @@ class UserController extends  BaseController
         if($userId <= 0)
         {
             return $this->sendError('登录失败！');
+        }elseif ($userInfo['status']>1){
+            return $this->sendError('账号已被拉黑 请联系管理员！');
         }
 
         $tempData = [
@@ -98,6 +100,7 @@ class UserController extends  BaseController
         {
             return $this->sendJson('',201);
         }
+
         $userInfo = new UserInfoLogic();
         $reData = (intval($data['type']??1) == 1) ?
             $userInfo->registerPhone($data['account']??'',$data['pwd']??'',$data['code']??''):
@@ -166,10 +169,10 @@ class UserController extends  BaseController
      */
     public function getUserInfo( Request  $request)
     {
-
         $userInfoObj = App::make(UserInfoLogic::class);
         $uData = $userInfoObj->getUserInfo($request->userData['uid']);//更新登录信息
         unset($uData['pwd']);
+        $uData['avatar'] = empty($uData['avatar'])?config('filesystems.avatar_path'):$uData['avatar'];
         return $this->sendJson($uData);
     }
 
@@ -199,6 +202,77 @@ class UserController extends  BaseController
         }catch (\Exception $e){
             return $this->sendError($e->getMessage());
         }
+    }
+    public $user;
+
+    /**
+     * 忘记密码
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     */
+    public function forgetPassword(Request $request)
+    {
+        if(Common::isMobile($request->input('account'))){
+            $data['phone'] = $request->input('account');
+        }else{
+            $data['email'] = $request->input('account');
+        }
+        $data['pwd'] = $request->input('pwd');
+        $data['code'] = $request->input('code');
+        $validator = Validator()->make($data, [
+            'pwd' => 'required|string',
+            'code' => 'required|int',
+            'phone' => [
+                'string',
+                function ($attribute, &$value, $fail) {
+                    if(!Common::isMobile($value)){
+                        $fail($attribute.' 非法手机号');
+                    }
+                    $user=UserInfoLogic::getUserInfoByPhone($value);
+                    if(!$user) {
+                        $fail($attribute . ' 不存在.');
+                    }elseif ($user['le_phone_status'] ==2 ){//未认证
+                        $fail($attribute . ' 未认证.');
+                    }
+                    $this->user = $user;
+                },
+            ],
+            'email' => [
+                'string',
+                'email',
+                function ($attribute, &$value, $fail) {
+
+                    if(!UserInfoLogic::checkEmail($value)){
+                        $fail($attribute.' 非法邮箱.');
+                    }
+                    $user = UserInfoLogic::getUserInfoByEmail($value);
+                    if(!$user) {
+                        $fail($attribute . ' 不存在.');
+                    }elseif ($user['le_email_status'] ==2 ){//未认证
+                        $fail($attribute . ' 未认证.');
+                    }
+                    $this->user = $user;
+                },
+            ],
+        ]);
+        if ($validator->fails()) {
+            return $this->sendError($validator->errors()->getMessageBag()->all()[0]);
+        }
+        $ret = App::make('CodeServiceWithDb')->checkCode($request->input('account'),
+            !empty($data['email'])?'email':'phone',$data['code']);
+        if($ret<=0){
+            return $this->sendError($ret==-1?'验证码已失效':'验证码错误');
+        }
+        $userInfoObj = App::make(UserInfoLogic::class);
+        $pwd['pwd'] = $data['pwd'];
+        try {
+            $userInfoObj->alterUserBase($pwd, $this->user['id']);//更新登录信息
+        }catch (\Exception $e){
+            return $this->sendError('操作异常:'.$e->getMessage());
+        }
+        return $this->sendJson([]);
+
     }
 
 }

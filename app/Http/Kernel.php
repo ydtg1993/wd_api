@@ -63,6 +63,7 @@ class Kernel extends HttpKernel
         'allow_origin' => \App\Http\Middleware\EnableCrossRequestMiddleware::class,//跨域
         'token' => \App\Http\Middleware\TokenMiddleware::class,//TOKEN
         'verify_captcha' => \App\Http\Middleware\VerifyCaptcha::class,//TOKEN
+        'tokens' => \App\Http\Middleware\TokensMiddleware::class,//TOKEN
     ];
 
     /**

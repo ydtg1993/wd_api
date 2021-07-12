@@ -52,7 +52,16 @@ class UploadFileController extends BaseController
      * @return \Illuminate\Http\JsonResponse
      */
     public function uploadProfilePhoto(Request $request ){
-        $this->configKey = 'upload_profile_files';
+        $this->configKey = 'upload_avatar';
+        return $this->upload( $request);
+    }
+
+    /**
+     * 上传片单图
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadPieceList(Request $request ){
+        $this->configKey = 'upload_piece_list_files';
         return $this->upload( $request);
     }
 }

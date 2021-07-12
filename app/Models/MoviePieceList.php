@@ -30,6 +30,7 @@ class MoviePieceList extends Model
         $reData['is_hot'] = $data['is_hot']??1;
         $reData['authority'] = $data['authority']??1;
         $reData['type'] = $data['type']??1;
+        $reData['created_at'] = $data['created_at']??1;
 
         return $reData;
     }

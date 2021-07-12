@@ -9,6 +9,8 @@ class Movie extends Model
 {
     protected $table = 'movie';
 
+    const pagesize = 10;//默认页数
+
     /**
      * 格式化影片列表数据
      * @param array $data
@@ -46,6 +48,7 @@ class Movie extends Model
         $reData['small_cover'] = $small_cover == ''?'':(Common::getImgDomain().$small_cover);
 
         $reData['big_cove'] = $big_cove == ''?'':(Common::getImgDomain().$big_cove);
+        $reData['is_short_comment'] = $data['is_short_comment']??0;;
 
         return $reData;
     }
@@ -55,8 +58,69 @@ class Movie extends Model
         return $this->hasMany(MovieLabelAss::class,'mid','id');
     }
 
+//    public function actors()
+//    {
+//        return $this->hasMany(MovieActorAss::class,'mid','id');
+//    }
+
+    /**
+     * @Description 关联演员影片表
+     * @DateTime    2018-10-31
+     * @copyright   [copyright]
+     * @return      [type]      [description]
+     */
     public function actors()
     {
-        return $this->hasMany(MovieActorAss::class,'mid','id');
+        return $this->belongsToMany('App\Models\MovieActor', 'movie_actor_associate', 'mid', 'aid');
     }
+
+
+    /**
+     * @Description 关联演员影片表
+     * @DateTime    2018-10-31
+     * @copyright   [copyright]
+     * @return      [type]      [description]
+     */
+    public function directors()
+    {
+        return $this->belongsToMany('App\Models\MovieDirector', 'movie_director_associate', 'mid', 'did');
+    }
+
+    /**
+     * ELASTICSEARCH 模糊搜索同时支持 [车牌，标题，描述]
+     * @param $keyword
+     * @param $page
+     * @param int $pageSize
+     * @return array
+     */
+    public static function searchAPage($keyword, $page,$pageSize = self::pagesize)
+    {
+        if(empty($keyword)){
+            return [];
+        }
+
+
+        $query = VideoElasticquent::getQueryArray($keyword,$page,$pageSize);
+        if(empty($query)){
+            return [];
+        }
+
+        $videos = VideoElasticquent::complexSearch($query);
+
+        $total = $videos->totalHits();
+        $more  = (int)(bool)($pageSize * $page < $total);
+
+        return [
+            'more' => $more,
+            'total'=>$total,
+            'video' => $videos,
+        ];
+    }
+
+
+
+
+
+
+
 }
