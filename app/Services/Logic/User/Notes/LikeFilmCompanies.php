@@ -28,7 +28,7 @@ class LikeFilmCompanies extends NotesBase
         $film_companies_id = $data['film_companies_id']??0;
         if($film_companies_id <= 0)
         {
-            $this->errorInfo->setCode(500,'无效的演员数据!');
+            $this->errorInfo->setCode(500,'无效的片商数据!');
             return false;
         }
         $status = $data['status']??1;
@@ -52,7 +52,7 @@ class LikeFilmCompanies extends NotesBase
         }
 
         $likeNum = UserLikeFilmCompanies::where('film_companies_id',$film_companies_id)->where('status',1)->count();
-        UserLikeFilmCompanies::where('id',$film_companies_id)->update(['like_sum' =>$likeNum]);
+        MovieFilmCompanies::where('id',$film_companies_id)->update(['like_sum' =>$likeNum]);
         //todo 清楚系列缓存后面补充
 
 
@@ -80,7 +80,7 @@ class LikeFilmCompanies extends NotesBase
 
         $reData = RedisCache::getCacheData('userLikeFilmCompanies','like:film:companies:list:',function () use ($data,$page,$pageSize,$uid)
         {
-            $reData = [];
+            $reData = ['list'=>[],'sum'=>0];
             $likeList = UserLikeFilmCompanies::where('uid',$uid)
                 ->where('status',1)
                 ->orderBy('like_time','desc')
@@ -90,6 +90,16 @@ class LikeFilmCompanies extends NotesBase
                 ->pluck('film_companies_id')
                 ->toArray();
 
+            $reData['sum'] = UserLikeFilmCompanies::where('uid',$uid)
+                ->where('status',1)->count();
+
+            $likeListTemp = [];
+            foreach ($likeList as $val)
+            {
+                $likeListTemp[] = $val;
+            }
+
+            $likeList = $likeListTemp;
             if(is_array($likeList) || count($likeList) > 0)
             {
                 $dataList = MovieFilmCompanies::whereIn('id',$likeList)->get();
@@ -105,7 +115,7 @@ class LikeFilmCompanies extends NotesBase
 
                 foreach ($likeList as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempData[$val]??[]);
                 }
             }
             return $reData;

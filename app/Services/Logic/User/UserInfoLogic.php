@@ -35,7 +35,11 @@ class UserInfoLogic extends BaseLogic
             $this->errorInfo->setCode(500,$ret==-1?'验证码已失效':'验证码错误');
             return false;
         }
-
+        //唯一性验证
+        if(static::checkPhone($phone)){
+            $this->errorInfo->setCode(500,'账号已存在');
+            return false;
+        }
         if(strlen($pwd) < 8)
         {
             $this->errorInfo->setCode(500,'密码太简单了！不能少于8位密码！');
@@ -65,7 +69,6 @@ class UserInfoLogic extends BaseLogic
      */
     public function registerEmail($email,$pwd,$code)
     {
-
         $ret = App::make('CodeServiceWithDb')->checkCode($email,'email',$code);
         if($ret<=0){
             $this->errorInfo->setCode(500,$ret==-1?'验证码已失效':'验证码错误');
@@ -74,6 +77,11 @@ class UserInfoLogic extends BaseLogic
         if(strlen($pwd) < 8)
         {
             $this->errorInfo->setCode(500,'密码太简单了！不能少于8位密码！');
+            return false;
+        }
+        //唯一性验证
+        if(static::checkEmail($email)){
+            $this->errorInfo->setCode(500,'账号已存在');
             return false;
         }
 
@@ -137,6 +145,7 @@ class UserInfoLogic extends BaseLogic
         $userObj->phone = $data['phone']??'';
         $userObj->number = md5((uniqid().time().rand(10000,99999)));
         $userObj->email = $data['email']??'';
+        $userObj->avatar = config('filesystems.avatar_path');//默认头像路径
         $userObj->pwd = Common::encodePwd($data['pwd']??'');
         $userObj->le_phone_status = $data['le_phone_status']??UserClient::PHONE_VER_STATUS_NO;
         $userObj->le_email_status = $data['le_email_status']??UserClient::EMAIL_VER_STATUS_NO;
@@ -207,7 +216,8 @@ class UserInfoLogic extends BaseLogic
         //组装TOKEN携带的数据 [只携带基础数据]
         $userBase = [];
         $userBase['uid'] = $userInfo['id'];
-        $userBase['number'] = $userInfo['number'];
+        $userBase['nickname'] = $userInfo['nickname'];
+        $userBase['avatar'] = $userInfo['avatar'];
 
         $data = [];
         $data['UserBase'] = $userBase;//用户数据
@@ -235,6 +245,52 @@ class UserInfoLogic extends BaseLogic
         {
             return true;
         }
+        return false;
+    }
+
+    /**
+     * 手机号重复检查
+     * @param $phone
+     * @return bool
+     */
+    public static function getUserInfoByPhone($phone)
+    {
+        $userInfo = UserClient::where('phone',$phone)->first();
+
+        if(!$userInfo)
+        {
+            return false;
+        }
+
+        $userInfo = $userInfo->toArray();
+
+        if(($userInfo['id']??0) > 0 )
+        {
+            return $userInfo;
+        }
+        return false;
+    }
+
+
+    /**
+     * 邮箱重复检查
+     * @param $email
+     * @return bool 存在true 不存在 false
+     */
+    public static function getUserInfoByEmail($email)
+    {
+        $userInfo = UserClient::where('email',$email)->first();
+        if(!$userInfo)
+        {
+            return false;
+        }
+
+        $userInfo = $userInfo->toArray();
+        if(($userInfo['id']??0) > 0 )
+        {
+            return $userInfo;
+        }
+
         return false;
     }
 
@@ -269,8 +325,8 @@ class UserInfoLogic extends BaseLogic
     public static function userDisData($userInfo = array())
     {
         $reData = array();
-        empty($userInfo['number'])?null:$reData['number'] = $userInfo['number'];
-        empty($userInfo['phone'])?null:$reData['phone'] = substr_replace($userInfo['phone'],'****',3,4) ;
+        empty($userInfo['number'])?($reData['number']=''):$reData['number'] = $userInfo['number'];
+        empty($userInfo['phone'])?($reData['phone'] =''):$reData['phone'] = substr_replace($userInfo['phone'],'****',3,4) ;
         if(!empty($userInfo['email']))
         {
             $arr = explode('@', $userInfo['email']);
@@ -282,17 +338,17 @@ class UserInfoLogic extends BaseLogic
             {
                 $arr[0] = substr_replace($arr[0],'****',0,4);
             }
-            $reData['email'] = $arr[0].'@'.$arr[1];
+            $reData['email'] = ($arr[0]??'').'@'.($arr[1]??'');
         }
-        empty($userInfo['nickname'])?null:$reData['nickname'] = $userInfo['nickname'];
+        empty($userInfo['nickname'])?$reData['nickname']='':$reData['nickname'] = $userInfo['nickname'];
 
-        empty($userInfo['sex'])?null:$reData['sex'] = $userInfo['sex'];
-        empty($userInfo['age'])?null:$reData['age'] = $userInfo['age'];
-        empty($userInfo['attention'])?null:$reData['attention'] = $userInfo['attention'];
-        empty($userInfo['fans'])?null:$reData['fans'] = $userInfo['fans'];
+        empty($userInfo['sex'])?($reData['sex']=0):$reData['sex'] = $userInfo['sex'];
+        empty($userInfo['age'])?($reData['age']=0):$reData['age'] = $userInfo['age'];
+        empty($userInfo['attention'])?($reData['attention']=0):$reData['attention'] = $userInfo['attention'];
+        empty($userInfo['fans'])?($reData['fans']=0):$reData['fans'] = $userInfo['fans'];
 
-        empty($userInfo['avatar'])?null:$reData['avatar'] = $userInfo['avatar'];
-        empty($userInfo['intro'])?null:$reData['intro'] = $userInfo['intro'];
+        empty($userInfo['avatar'])?($reData['avatar']=''):$reData['avatar'] = $userInfo['avatar'];
+        empty($userInfo['intro'])?($reData['intro']=''):$reData['intro'] = $userInfo['intro'];
         return $reData;
     }
 
@@ -337,7 +393,6 @@ class UserInfoLogic extends BaseLogic
         (!empty($data['age']))?$userBase->age = ($data['age']??''):null;
         (!empty($data['login_time']))?$userBase->login_time = ($data['login_time']??''):null;
         (!empty($data['login_ip']))?$userBase->login_ip = ($data['login_ip']??''):null;
-
         $userBase->save();
 
         $userInfo = $this->refreshUserCache($userBase->id);//刷新用户相关缓存

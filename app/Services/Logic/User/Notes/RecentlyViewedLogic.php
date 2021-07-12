@@ -70,22 +70,30 @@ class RecentlyViewedLogic extends NotesBase
 
         $reData = RedisCache::getCacheData('userActionRecVie','recently:viewed:list:',function () use ($data,$page,$pageSize,$uid,$type)
         {
-            $reData = [];
+            $reData = ['list'=>[],'sum'=>0];
             if($type <= 0)
             {
                 $browseList = UserBrowseMovie::where('uid',$uid)->where('status',1)->orderBy('browse_time','desc')->offset(($page - 1) * $pageSize)->limit($pageSize)->get()->pluck('mid')->toArray();
+                $reData['sum'] = UserBrowseMovie::where('uid',$uid)->where('status',1)->count();
+                $browseListTemp = [];
+                foreach ($browseList as $val)
+                {
+                    $browseListTemp[] = $val;
+                }
+
+                $browseList = $browseListTemp;
                 if(is_array($browseList) || count($browseList) > 0)
                 {
                     $MovieList = Movie::whereIn('id',$browseList)->get();
                     $tempMovie = [];
+
                     foreach ($MovieList as $val)
                     {
                         $tempMovie[$val['id']??0] = MovieLogic::formatList($val);//格式化视频数据
                     }
-
                     foreach ($browseList as $val)
                     {
-                        $reData[] = $val;
+                        $reData['list'][] = $tempMovie[$val]??[];
                     }
                 }
                 return $reData;
@@ -103,13 +111,20 @@ class RecentlyViewedLogic extends NotesBase
 
                 $userBrowseMovieDb = $userBrowseMovieDb ->where('movie_category_associate.cid',$type);
 
+                $reData['sum'] = $userBrowseMovieDb->count();
                 $userBrowseMovieDb = $userBrowseMovieDb->orderBy('user_browse_movie.browse_time','desc');
                 $userDataInfo = $userBrowseMovieDb->offset(($page - 1) * $pageSize)
                     ->limit($pageSize)
                     ->get()
                     ->pluck('mid')
                     ->toArray();
+                $browseListTemp = [];
+                foreach ($userDataInfo as $val)
+                {
+                    $browseListTemp[] = $val;
+                }
 
+                $userDataInfo = $browseListTemp;
                 if(is_array($userDataInfo) || count($userDataInfo) > 0)
                 {
                     $MovieList = Movie::whereIn('id',$userDataInfo)->get();
@@ -121,7 +136,7 @@ class RecentlyViewedLogic extends NotesBase
 
                     foreach ($userDataInfo as $val)
                     {
-                        $reData[] = $val;
+                        $reData['list'][] = $tempMovie[$val]??[];
                     }
                 }
                 return $reData;
@@ -132,4 +147,6 @@ class RecentlyViewedLogic extends NotesBase
 
         return (is_array($reData) || count($reData) >0 )? $reData:[];
     }
+
+
 }

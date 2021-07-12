@@ -85,9 +85,10 @@ class WantSeeLogic extends NotesBase
 
         $reData = RedisCache::getCacheData('userWantSee','want:see:list:',function () use ($data,$page,$pageSize,$uid,$type,$sort,$sortType)
         {
+            $reData = ['list'=>[],'sum'=>0];
             $userWantSeeDb = UserWantSeeMovie::where('user_want_see_movie.uid',$uid)
                 ->where('user_want_see_movie.status',1)
-                ->leftJoin('movie', 'user_want_see_movie.id', '=', 'movie.user_id');
+                ->leftJoin('movie', 'movie.id', '=', 'user_want_see_movie.uid');
             /*->leftJoinSub($movieDbObj,'movie',function ($join)
             {
                 $join->on('user_want_see_movie.mid', '=', 'movie.id');
@@ -104,6 +105,7 @@ class WantSeeLogic extends NotesBase
                 $userWantSeeDb = $userWantSeeDb ->where('movie_category_associate.cid',$type);
             }
 
+            $reData['sum'] = $userWantSeeDb->count();
             if($sort == 2)
             {
                 $userWantSeeDb = $userWantSeeDb->orderBy('movie.release_time',$sortType);
@@ -116,6 +118,13 @@ class WantSeeLogic extends NotesBase
             $userDataInfo = $userWantSeeDb->offset(($page - 1) * $pageSize)
                 ->limit($pageSize)->get()->pluck('mid')->toArray();
 
+            $browseListTemp = [];
+            foreach ($userDataInfo as $val)
+            {
+                $browseListTemp[] = $val;
+            }
+
+            $userDataInfo = $browseListTemp;
             if(is_array($userDataInfo) || count($userDataInfo) > 0)
             {
                 $MovieList = Movie::whereIn('id',$userDataInfo)->get();
@@ -125,9 +134,9 @@ class WantSeeLogic extends NotesBase
                     $tempMovie[$val['id']??0] = MovieLogic::formatList($val);//格式化视频数据
                 }
 
-                foreach ($MovieList as $val)
+                foreach ($userDataInfo as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempMovie[$val]??[]);
                 }
             }
 

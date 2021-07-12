@@ -79,7 +79,7 @@ class LikeActor extends NotesBase
 
         $reData = RedisCache::getCacheData('userLikeActor','like:actor:list:',function () use ($data,$page,$pageSize,$uid)
         {
-            $reData = [];
+            $reData = ['list'=>[],'sum'=>0];
             $likeList = UserLikeActor::where('uid',$uid)
                 ->where('status',1)
                 ->orderBy('like_time','desc')
@@ -88,6 +88,15 @@ class LikeActor extends NotesBase
                 ->get()
                 ->pluck('aid')
                 ->toArray();
+            $reData['sum'] = UserLikeActor::where('uid',$uid)
+                ->where('status',1)->count();
+            $likeListTemp = [];
+            foreach ($likeList as $val)
+            {
+                $likeListTemp[] = $val;
+            }
+
+            $likeList = $likeListTemp;
 
             if(is_array($likeList) || count($likeList) > 0)
             {
@@ -104,7 +113,7 @@ class LikeActor extends NotesBase
 
                 foreach ($likeList as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempData[$val]??[]);
                 }
             }
             return $reData;

@@ -41,6 +41,7 @@ class ConfLogic extends HandleLogic
      */
     public function getConfByType( $type ){
         $cacheKey = $this->redisPrefix.$this->keyMap[$type];
+
         $redis = Redis::connection();
         $data = $redis->get($cacheKey);
         if(!empty($data)){

@@ -9,23 +9,19 @@
 namespace App\Services\Logic\Home;
 
 
-use App\Services\Logic\BaseLogic;
+use App\Services\Logic\HandleLogic;
 
-class HomeLogic extends BaseLogic
+class HomeLogic extends HandleLogic
 {
-    protected static $namePath = 'App\\Services\\Logic\\Home\\';
+    protected $namePath = 'App\\Services\\Logic\\Home\\';
 
 
 
     //类型执行
-    protected static $typeClass = array(
+    protected  $typeClass = array(
         1=>'PopularLogic',//热门
         2=>'AttentionLogic',//关注
-        3=>'CategoryLogic',//类别-无码
-        4=>'CategoryLogic',//类别-有码
-        5=>'CategoryLogic',//类别-欧美
-        6=>'CategoryLogic',//类别-FC2
-
+        3=>'CategoryLogic',//类别-获取
     );
 
     /**
@@ -36,7 +32,7 @@ class HomeLogic extends BaseLogic
      */
     public function getHomeData($arg = array(),$type = 1)
     {
-        $runClassName = self::getClassName($type);
+        $runClassName = $this->getClassName($type);
         if(!class_exists($runClassName))
         {
             $this->errorInfo->setCode(500,'未知的操作对象');

@@ -69,7 +69,7 @@ class Fans extends NotesBase
         $num_attention = UserLikeUser::where('uid',$uid)->where('status',1)->count();
         UserClient::where('id',$uid)->update(['attention' =>$num_attention]);
 
-        $num_fans = UserLikeUser::where('goal_id',$goal_id)->where('status',1)->count();
+        $num_fans = UserLikeUser::where('goal_uid',$goal_id)->where('status',1)->count();
         UserClient::where('id',$goal_id)->update(['fans' =>$num_fans]);
 
         RedisCache::clearCacheManageAllKey('userLikeUser',$uid);//清楚指定用户关注/粉丝的缓存
@@ -102,16 +102,24 @@ class Fans extends NotesBase
         {
             $reData = RedisCache::getCacheData('userLikeUser','like:attention:list:',function () use ($data,$page,$pageSize,$uid)
             {
-                $reData = [];
+                $reData = ['list'=>[],'sum'=>0];
                 $likeList = UserLikeUser::where('uid',$uid)
                     ->where('status',1)
                     ->orderBy('like_time','desc')
                     ->offset(($page - 1) * $pageSize)
                     ->limit($pageSize)
                     ->get()
-                    ->pluck('goal_id')
+                    ->pluck('goal_uid')
                     ->toArray();
+                $reData['sum'] = UserLikeUser::where('uid',$uid)
+                    ->where('status',1)->count();
+                $likeListTemp = [];
+                foreach ($likeList as $val)
+                {
+                    $likeListTemp[] = $val;
+                }
 
+                $likeList = $likeListTemp;
                 if(is_array($likeList) || count($likeList) > 0)
                 {
                     $dataList = UserClient::whereIn('id',$likeList)->get();
@@ -133,7 +141,7 @@ class Fans extends NotesBase
 
                     foreach ($likeList as $val)
                     {
-                        $reData[] = ($tempData[$val]??[]);
+                        $reData['list'][] = ($tempData[$val]??[]);
                     }
                 }
                 return $reData;
@@ -144,7 +152,7 @@ class Fans extends NotesBase
             $reData = RedisCache::getCacheData('userLikeUser','like:fans:list:',function () use ($data,$page,$pageSize,$uid)
             {
                 $reData = [];
-                $likeList = UserLikeUser::where('goal_id',$uid)
+                $likeList = UserLikeUser::where('goal_uid',$uid)
                     ->where('status',1)
                     ->orderBy('like_time','desc')
                     ->offset(($page - 1) * $pageSize)
@@ -152,6 +160,14 @@ class Fans extends NotesBase
                     ->get()
                     ->pluck('uid')
                     ->toArray();
+
+                $likeListTemp = [];
+                foreach ($likeList as $val)
+                {
+                    $likeListTemp[] = $val;
+                }
+
+                $likeList = $likeListTemp;
 
                 if(is_array($likeList) || count($likeList) > 0)
                 {

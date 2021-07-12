@@ -28,7 +28,7 @@ class LikeNumber extends NotesBase
         $nid = $data['nid']??0;
         if($nid <= 0)
         {
-            $this->errorInfo->setCode(500,'无效的演员数据!');
+            $this->errorInfo->setCode(500,'无效的番号数据!');
             return false;
         }
         $status = $data['status']??1;
@@ -79,7 +79,7 @@ class LikeNumber extends NotesBase
 
         $reData = RedisCache::getCacheData('userLikeNumber','like:number:list:',function () use ($data,$page,$pageSize,$uid)
         {
-            $reData = [];
+            $reData = ['list'=>[],'sum'=>0];
             $likeList = UserLikeNumber::where('uid',$uid)
                 ->where('status',1)
                 ->orderBy('like_time','desc')
@@ -88,6 +88,17 @@ class LikeNumber extends NotesBase
                 ->get()
                 ->pluck('nid')
                 ->toArray();
+
+            $reData['sum'] = UserLikeNumber::where('uid',$uid)
+                ->where('status',1)->count();
+
+            $likeListTemp = [];
+            foreach ($likeList as $val)
+            {
+                $likeListTemp[] = $val;
+            }
+
+            $likeList = $likeListTemp;
 
             if(is_array($likeList) || count($likeList) > 0)
             {
@@ -104,7 +115,7 @@ class LikeNumber extends NotesBase
 
                 foreach ($likeList as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempData[$val]??[]);
                 }
             }
             return $reData;

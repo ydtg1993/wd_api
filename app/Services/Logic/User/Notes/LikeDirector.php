@@ -79,7 +79,7 @@ class LikeDirector extends NotesBase
 
         $reData = RedisCache::getCacheData('userLikeDirector','like:director:list:',function () use ($data,$page,$pageSize,$uid)
         {
-            $reData = [];
+            $reData = ['list'=>[],'sum'=>0];
             $likeList = UserLikeDirector::where('uid',$uid)
                 ->where('status',1)
                 ->orderBy('like_time','desc')
@@ -88,7 +88,15 @@ class LikeDirector extends NotesBase
                 ->get()
                 ->pluck('did')
                 ->toArray();
+            $reData['sum'] = UserLikeDirector::where('uid',$uid)
+                ->where('status',1)->count();
+            $likeListTemp = [];
+            foreach ($likeList as $val)
+            {
+                $likeListTemp[] = $val;
+            }
 
+            $likeList = $likeListTemp;
             if(is_array($likeList) || count($likeList) > 0)
             {
                 $dataList = MovieDirector::whereIn('id',$likeList)->get();
@@ -104,7 +112,7 @@ class LikeDirector extends NotesBase
 
                 foreach ($likeList as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempData[$val]??[]);
                 }
             }
             return $reData;

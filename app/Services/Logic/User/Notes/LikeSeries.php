@@ -28,7 +28,7 @@ class LikeSeries extends NotesBase
         $series_id = $data['series_id']??0;
         if($series_id <= 0)
         {
-            $this->errorInfo->setCode(500,'无效的演员数据!');
+            $this->errorInfo->setCode(500,'无效的系列数据!');
             return false;
         }
         $status = $data['status']??1;
@@ -79,15 +79,26 @@ class LikeSeries extends NotesBase
 
         $reData = RedisCache::getCacheData('userLikeSeries','like:series:list:',function () use ($data,$page,$pageSize,$uid)
         {
-            $reData = [];
+            $reData = ['list'=>[],'sum'=>0];
             $likeList = UserLikeSeries::where('uid',$uid)
                 ->where('status',1)
                 ->orderBy('like_time','desc')
                 ->offset(($page - 1) * $pageSize)
                 ->limit($pageSize)
                 ->get()
-                ->pluck('nid')
+                ->pluck('series_id')
                 ->toArray();
+
+            $reData['sum'] = UserLikeSeries::where('uid',$uid)
+                ->where('status',1)->count();
+
+            $likeListTemp = [];
+            foreach ($likeList as $val)
+            {
+                $likeListTemp[] = $val;
+            }
+
+            $likeList = $likeListTemp;
 
             if(is_array($likeList) || count($likeList) > 0)
             {
@@ -104,7 +115,7 @@ class LikeSeries extends NotesBase
 
                 foreach ($likeList as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempData[$val]??[]);
                 }
             }
             return $reData;

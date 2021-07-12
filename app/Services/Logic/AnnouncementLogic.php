@@ -42,8 +42,8 @@ class  AnnouncementLogic extends \App\Services\Logic\HandleLogic
             return $res;
         }
         $res['list'] = $baseQuery->get()->toArray();
-        $redis->set(
-            $cacheKey,json_encode($res['list'],JSON_UNESCAPED_UNICODE),$this->redisTtl
+        $redis->setex(
+            $cacheKey,$this->redisTtl,json_encode($res['list'],JSON_UNESCAPED_UNICODE)
         );
         return $res;
     }

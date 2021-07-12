@@ -35,7 +35,7 @@ class SeenLogic  extends NotesBase
             $this->errorInfo->setCode(500,'无效的影片数据!');
             return false;
         }
-        $status = $data['status']??1;
+        $status = $data['status']??1;//1添加想看 2.取消
 
         if($status == 1)
         {
@@ -116,9 +116,10 @@ class SeenLogic  extends NotesBase
 
         $reData = RedisCache::getCacheData('userSeen','seen:list:',function () use ($data,$page,$pageSize,$uid,$type,$sort,$sortType,$score)
         {
+            $reData = ['list'=>[],'sum'=>0];
             $userSeenDb = UserSeenMovie::where('user_seen_movie.uid',$uid)
                 ->where('user_seen_movie.status',1)
-                ->leftJoin('movie', 'user_seen_movie.id', '=', 'movie.user_id');
+                ->leftJoin('movie', 'movie.id', '=', 'user_seen_movie.mid');
             /*->leftJoinSub($movieDbObj,'movie',function ($join)
             {
                 $join->on('user_seen_movie.mid', '=', 'movie.id');
@@ -137,10 +138,17 @@ class SeenLogic  extends NotesBase
 
             if($score >0 && $score <= 5 )
             {
-                $userSeenDb = $userSeenDb ->where('movie.score','>=',$score);
-                $userSeenDb = $userSeenDb ->where('movie.score','<=',$score+1);
+                $scoreArr = [1=>['min'=>0,'max'=>4],
+                    2=>['min'=>4,'max'=>6],
+                    3=>['min'=>6,'max'=>8],
+                    4=>['min'=>8,'max'=>10]
+                ];
+
+                $userSeenDb = $userSeenDb ->where('movie.score','>=',$scoreArr[$score]['min']??0);
+                $userSeenDb = $userSeenDb ->where('movie.score','<=',$scoreArr[$score]['max']??0);
             }
 
+            $reData['sum'] = $userSeenDb->count();
             if($sort == 2)
             {
                 $userSeenDb = $userSeenDb->orderBy('movie.release_time',$sortType);
@@ -153,6 +161,14 @@ class SeenLogic  extends NotesBase
             $userDataInfo = $userSeenDb->offset(($page - 1) * $pageSize)
                 ->limit($pageSize)->get()->pluck('mid')->toArray();
 
+            $browseListTemp = [];
+            foreach ($userDataInfo as $val)
+            {
+                $browseListTemp[] = $val;
+            }
+
+            $userDataInfo = $browseListTemp;
+
             if(is_array($userDataInfo) || count($userDataInfo) > 0)
             {
                 $MovieList = Movie::whereIn('id',$userDataInfo)->get();
@@ -162,9 +178,9 @@ class SeenLogic  extends NotesBase
                     $tempMovie[$val['id']??0] = Movie::formatList($val);//格式化视频数据
                 }
 
-                foreach ($MovieList as $val)
+                foreach ($userDataInfo as $val)
                 {
-                    $reData[] = ($tempData[$val]??[]);
+                    $reData['list'][] = ($tempMovie[$val]??[]);
                 }
             }
 
