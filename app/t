@@ -3,3 +3,7 @@ INSERT INTO `yellowDoubanDB`.`user_client`(`id`, `number`, `status`, `phone`, `e
 INSERT INTO `yellowDoubanDB`.`user_client`(`id`, `number`, `status`, `phone`, `email`, `nickname`, `pwd`, `sex`, `type`, `age`, `attention`, `fans`, `avatar`, `intro`, `comment`, `reply`, `like`, `dislike`, `report`, `le_phone_time`, `le_phone_status`, `le_email_time`, `le_email_status`, `login_time`, `login_ip`, `created_at`, `updated_at`) VALUES (47, 'a28c4dbd0d926813895e7702762d1111', 1, '', 'test12345@qq.com', '小黄豆2Mng', '0SO8whcsffbdzX4tmD2CoMNPLpwIpEzhJjXlFEGclL+zT9F9sMcGiEZ65cMgwMrbjEBpx9+qEZ4DX049v0wO5RO8XKQaUJHshB0kmMhh34sl0uyRuDc/xkb4foJqmfQ5', 0, 1, NULL, NULL, NULL, '/uploads/avatar/default_avatar.jpg', '', 0, 0, 0, 0, 0, '2021-07-06 16:38:33', 2, '2021-07-06 16:38:33', 1, '2021-07-06 16:38:33', '', '2021-07-06 08:38:33', '2021-07-06 08:38:33');
 Brave (Brave) 2021/07/12 13:21:12
 fgxiMPS+vtfkeG0tWsnsqHcfChFoFD9DMpWpJsHSxNWgEkv0fWZx07ZYhVmeiFRuPmPtBtMMLSLe7+IMI2vKisXM0KcYeSrAt6UKJnDJw0qkECP3ykLeC3kNjWPkvKXFNYnWwbDMTDUHgAa28QjmvuIQyVpClrXGNNMCHs9uStSIPYEvtL0TyGfNoIHlkp2l+rFDrpXSCWP46B44XIsdzCAI2h3DoeZtE5EV7+Ca3Ns=
+  `reply` int(255) DEFAULT '0' COMMENT '用户回复数',
+  `like` int(255) DEFAULT '0' COMMENT '点赞数',
+  `dislike` int(255) DEFAULT '0' COMMENT '不喜欢',
+  `report` int(255) DEFAULT '0' COMMENT '举报',
