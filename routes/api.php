@@ -73,30 +73,30 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function (
 });
 
 //详情页
-Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::post('movie/detail', 'MovieDetailController@index');
     Route::post('movie/show', 'MovieDetailController@show');
     Route::post('movie/guess', 'MovieDetailController@guess');
     Route::post('movie/comment', 'MovieDetailController@comment');
     Route::post('movie/reply', 'MovieDetailController@reply');
 });
-Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::post('actor/detail', 'ActorDetailController@index');
     Route::post('actor/products', 'ActorDetailController@products');
 });
-Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::post('director/detail', 'DirectorDetailController@index');
     Route::post('director/products', 'DirectorDetailController@products');
 });
-Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::post('number/detail', 'NumberDetailController@index');
     Route::post('number/products', 'NumberDetailController@products');
 });
-Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::post('series/detail', 'SeriesDetailController@index');
     Route::post('series/products', 'SeriesDetailController@products');
 });
-Route::group(['namespace' => 'Api','middleware' => ['allow_origin']], function () {
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::post('company/detail', 'FilmCompaniesDetailController@index');
     Route::post('company/products', 'FilmCompaniesDetailController@products');
 });

@@ -40,8 +40,10 @@ class FilmCompaniesDetailController extends BaseController
             $number = MovieFilmCompanies::where('id',$request->input('id'))->first();
             $data = MovieFilmCompanies::formatList($number);
             $data['is_like'] = 0;
-            if($request->has('uid') &&
-                UserLikeFilmCompanies::where(['uid'=>$request->input('uid'),'film_companies_id'=>$request->input('id')])->exists()){
+
+            $uid = $request->userData['uid']??0;
+            if($uid>0 &&
+                UserLikeFilmCompanies::where(['uid'=>$uid,'film_companies_id'=>$request->input('id')])->exists()){
                 $data['is_like'] = 1;
             }
         } catch (\Exception $e) {

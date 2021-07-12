@@ -39,8 +39,10 @@ class NumberDetailController extends BaseController
             $number = MovieNumber::where('id',$request->input('id'))->first();
             $data = MovieNumber::formatList($number);
             $data['is_like'] = 0;
-            if($request->has('uid') &&
-                UserLikeNumber::where(['uid'=>$request->input('uid'),'nid'=>$request->input('id')])->exists()){
+
+            $uid = $request->userData['uid']??0;
+            if($uid>0 &&
+                UserLikeNumber::where(['uid'=>$uid,'nid'=>$request->input('id')])->exists()){
                 $data['is_like'] = 1;
             }
         } catch (\Exception $e) {

@@ -38,7 +38,9 @@ class SeriesDetailController extends BaseController
             $series = MovieSeries::where('id',$request->input('id'))->first();
             $data = MovieSeries::formatList($series);
             $data['is_like'] = 0;
-            if($request->has('uid') &&
+
+            $uid = $request->userData['uid']??0;
+            if($uid>0 &&
                 UserLikeSeries::where(['uid'=>$request->input('uid'),'series_id'=>$request->input('id')])->exists()){
                 $data['is_like'] = 1;
             }

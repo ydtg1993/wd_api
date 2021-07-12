@@ -99,11 +99,13 @@ class MovieDetailController extends BaseController
                 'seen' => 0,
                 'want_see' => 0
             ];
-            if($request->has('uid')){
-                if(UserSeenMovie::where(['uid'=>$request->input('uid'),'mid'=>$request->input('id')])->exists()) {
+
+            $uid = $request->userData['uid']??0;
+            if($uid>0){
+                if(UserSeenMovie::where(['uid'=>$uid,'mid'=>$request->input('id')])->exists()) {
                     $data['seen'] = 1;
                 }
-                if(UserWantSeeMovie::where(['uid'=>$request->input('uid'),'mid'=>$request->input('id')])->exists()){
+                if(UserWantSeeMovie::where(['uid'=>$uid,'mid'=>$request->input('id')])->exists()){
                     $data['want_see'] = 1;
                 }
             }
@@ -199,7 +201,6 @@ class MovieDetailController extends BaseController
         try {
             $validator = Validator()->make($request->all(), [
                 'id' => 'required|numeric',
-                'uid' => 'required|numeric',
                 'comment' => 'required|string|min:6|max:255',
                 'comment_id' => 'required|numeric'
             ]);
@@ -207,8 +208,13 @@ class MovieDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
+            $uid = $request->userData['uid']??0;
+            if($uid < 0){
+                throw new \Exception('无效用户token');
+            }
+
             $res = MovieComment::add(
-                $request->input('uid'),
+                $uid,
                 $request->input('id'),
                 $request->input('comment'),
                 $request->input('comment_id'));

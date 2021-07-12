@@ -43,6 +43,8 @@ class ActorDetailController extends BaseController
             $data = MovieActor::formatList($actor);
             $data['names'] = $names;
             $data['is_like'] = 0;
+
+
             if($request->has('uid') &&
                 UserLikeActor::where(['uid'=>$request->input('uid'),'aid'=>$request->input('id')])->exists()){
                 $data['is_like'] = 1;
