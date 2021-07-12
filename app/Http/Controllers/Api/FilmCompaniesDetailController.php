@@ -43,7 +43,7 @@ class FilmCompaniesDetailController extends BaseController
 
             $uid = $request->userData['uid']??0;
             if($uid>0 &&
-                UserLikeFilmCompanies::where(['uid'=>$uid,'film_companies_id'=>$request->input('id')])->exists()){
+                UserLikeFilmCompanies::where(['uid'=>$uid,'film_companies_id'=>$request->input('id'),'status'=>1])->exists()){
                 $data['is_like'] = 1;
             }
         } catch (\Exception $e) {

@@ -42,7 +42,7 @@ class NumberDetailController extends BaseController
 
             $uid = $request->userData['uid']??0;
             if($uid>0 &&
-                UserLikeNumber::where(['uid'=>$uid,'nid'=>$request->input('id')])->exists()){
+                UserLikeNumber::where(['uid'=>$uid,'nid'=>$request->input('id'),'status'=>1])->exists()){
                 $data['is_like'] = 1;
             }
         } catch (\Exception $e) {

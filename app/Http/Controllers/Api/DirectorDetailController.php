@@ -48,7 +48,7 @@ class DirectorDetailController extends BaseController
 
             $uid = $request->userData['uid']??0;
             if($uid>0 &&
-                UserLikeDirector::where(['uid'=>$uid,'did'=>$request->input('id')])->exists()){
+                UserLikeDirector::where(['uid'=>$uid,'did'=>$request->input('id'),'status'=>1])->exists()){
                 $data['is_like'] = 1;
             }
             return $this->sendJson($data);

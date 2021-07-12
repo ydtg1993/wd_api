@@ -46,7 +46,7 @@ class ActorDetailController extends BaseController
 
             $uid = $request->userData['uid']??0;
             if($uid>0 &&
-                UserLikeActor::where(['uid'=>$uid,'aid'=>$request->input('id')])->exists()){
+                UserLikeActor::where(['uid'=>$uid,'aid'=>$request->input('id'),'status'=>1])->exists()){
                 $data['is_like'] = 1;
             }
 

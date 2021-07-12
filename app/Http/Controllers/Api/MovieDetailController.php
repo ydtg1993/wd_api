@@ -102,10 +102,10 @@ class MovieDetailController extends BaseController
 
             $uid = $request->userData['uid']??0;
             if($uid>0){
-                if(UserSeenMovie::where(['uid'=>$uid,'mid'=>$request->input('id')])->exists()) {
+                if(UserSeenMovie::where(['uid'=>$uid,'mid'=>$request->input('id'),'status'=>1])->exists()) {
                     $data['seen'] = 1;
                 }
-                if(UserWantSeeMovie::where(['uid'=>$uid,'mid'=>$request->input('id')])->exists()){
+                if(UserWantSeeMovie::where(['uid'=>$uid,'mid'=>$request->input('id'),'status'=>1])->exists()){
                     $data['want_see'] = 1;
                 }
             }
