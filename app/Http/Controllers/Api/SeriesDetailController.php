@@ -41,7 +41,7 @@ class SeriesDetailController extends BaseController
 
             $uid = $request->userData['uid']??0;
             if($uid>0 &&
-                UserLikeSeries::where(['uid'=>$request->input('uid'),'series_id'=>$request->input('id')])->exists()){
+                UserLikeSeries::where(['uid'=>$uid,'series_id'=>$request->input('id')])->exists()){
                 $data['is_like'] = 1;
             }
         } catch (\Exception $e) {
