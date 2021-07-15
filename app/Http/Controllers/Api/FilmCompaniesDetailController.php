@@ -79,22 +79,22 @@ class FilmCompaniesDetailController extends BaseController
 
             //filter
             switch ($request->input('filter')) {
-                case 'subtitle':
+                case 1:
                     $movies = $movies->where('movie.is_subtitle', 2);
                     break;
-                case 'download':
+                case 2:
                     $movies = $movies->where('movie.is_download', 2);
                     break;
-                case 'comment':
+                case 3:
                     $movies = $movies->where('movie.new_comment_time', '>=', date('Y-m-d 00:00:00'));
                     break;
             }
             //sort
             switch ($request->input('sort')){
-                case 'release':
+                case 1:
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
-                case 'linkage':
+                case 2:
                     $movies = $movies->orderBy('movie.flux_linkage_time', 'DESC');
                     break;
                 default:

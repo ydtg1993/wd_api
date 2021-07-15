@@ -10,6 +10,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\MoviePieceList;
 use App\Models\UserLikeUser;
+use App\Models\UserPieceList;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use App\Services\Logic\User\Notes\NotesLogic;
@@ -41,6 +42,12 @@ class PieceListController extends BaseController
         if(($pieceListObj->getErrorInfo()->code??500) != 200)
         {
             return $this->sendError($pieceListObj->getErrorInfo()->msg??'未知错误!',$pieceListObj->getErrorInfo()->code??500);
+        }
+
+        $reData['is_like'] = 0;
+        if($data['uid']>0 &&
+            UserPieceList::where(['uid'=>$data['uid'],'plid'=>$pid,'status'=>1])->exists()){
+            $reData['is_like'] = 1;
         }
 
         MoviePieceList::where('id',$pid)->increment('pv_browse_sum');//记录浏览次数

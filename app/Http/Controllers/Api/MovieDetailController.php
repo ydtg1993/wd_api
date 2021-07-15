@@ -9,7 +9,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\ComplaintRequest;
-use App\Models\Movie;
 use App\Models\MovieActor;
 use App\Models\MovieActorAss;
 use App\Models\MovieComment;
@@ -17,7 +16,9 @@ use App\Models\MovieDirector;
 use App\Models\MovieFilmCompanies;
 use App\Models\MovieLabel;
 use App\Models\MovieLabelAss;
+use App\Models\MovieNumber;
 use App\Models\MovieSeries;
+use App\Models\Mv;
 use App\Models\UserSeenMovie;
 use App\Models\UserWantSeeMovie;
 use App\Services\Logic\Common;
@@ -43,16 +44,18 @@ class MovieDetailController extends BaseController
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
-            $movie = Movie::where('movie.id', $request->input('id'))
+            $movie = Mv::where('movie.id', $request->input('id'))
                 ->leftJoin('movie_director_associate', 'movie.id', '=', 'movie_director_associate.mid')
                 ->leftJoin('movie_film_companies_associate', 'movie.id', '=', 'movie_film_companies_associate.mid')
                 ->leftJoin('movie_series_associate', 'movie.id', '=', 'movie_series_associate.mid')
+                ->leftjoin('movie_number_associate','movie.id','=','movie_number_associate.mid')
                 ->with('labels')
                 ->with('actors')
                 ->select('movie.*',
                     'movie_director_associate.did as director_id',
-                    'movie_film_companies_associate.film_companies_id as ',
-                    'movie_series_associate.series_id as series_id')
+                    'movie_film_companies_associate.film_companies_id as film_companies_id',
+                    'movie_series_associate.series_id as series_id',
+                    'movie_number_associate.nid as number_id')
                 ->first();
             if ($movie->status !== 1) {
                 return $this->sendError('已经下架');
@@ -61,6 +64,7 @@ class MovieDetailController extends BaseController
             $director = MovieDirector::where('id', $movie->director_id)->pluck('name', 'id')->all();
             $company = MovieFilmCompanies::where('id', $movie->film_companies_id)->pluck('name', 'id')->all();
             $series = MovieSeries::where('id', $movie->series_id)->pluck('name', 'id')->all();
+            $numbers = MovieNumber::where('id', $movie->number_id)->pluck('name', 'id')->all();
 
             /*标签*/
             $labels = [];
@@ -96,6 +100,7 @@ class MovieDetailController extends BaseController
                 'director' => $director,
                 'company' => $company,
                 'series' => $series,
+                'numbers' => $numbers,
                 'seen' => 0,
                 'want_see' => 0
             ];
@@ -222,7 +227,7 @@ class MovieDetailController extends BaseController
             if ($res == false) {
                 return $this->sendError('回复失败');
             }
-            Movie::where('id', $request->input('id'))->update([
+            Mv::where('id', $request->input('id'))->update([
                 'new_comment_time' => date('Y-m-d H:i:s'),
                 'comment_num' => DB::raw('comment_num+1')]);
 
@@ -242,7 +247,7 @@ class MovieDetailController extends BaseController
             throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
         }
 
-        $movie = Movie::with('actors')->select('id')->first();
+        $movie = Mv::with('actors')->select('id')->first();
         $actors = [];
         foreach ($movie->actors as $a){
             $actors[] = $a->aid;
@@ -251,10 +256,10 @@ class MovieDetailController extends BaseController
         shuffle($movie_ids);
         $movie_ids = array_slice($movie_ids,0,min(count($movie_ids),15));
 
-        $movies = Movie::whereIn('id',$movie_ids)->get();
+        $movies = Mv::whereIn('id',$movie_ids)->get();
         $data = [];
         foreach ($movies as $movie){
-            $data[] = Movie::formatList($movie);
+            $data[] = Mv::formatList($movie);
         }
         return $this->sendJson($data);
     }
@@ -268,7 +273,7 @@ class MovieDetailController extends BaseController
             throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
         }
 
-        $movie = Movie::with('labels')->select('id')->first();
+        $movie = Mv::with('labels')->select('id')->first();
         $labels = [];
         foreach ($movie->labels as $l) {
             $labels[] = $l->cid;
@@ -277,10 +282,10 @@ class MovieDetailController extends BaseController
         shuffle($movie_ids);
         $movie_ids = array_slice($movie_ids,0,min(count($movie_ids),2));
 
-        $movies = Movie::whereIn('id',$movie_ids)->get();
+        $movies = Mv::whereIn('id',$movie_ids)->get();
         $data = [];
         foreach ($movies->toArray() as $movie){
-            $data[] = Movie::formatList($movie);
+            $data[] = Mv::formatList($movie);
         }
         return $this->sendJson($data);
     }
