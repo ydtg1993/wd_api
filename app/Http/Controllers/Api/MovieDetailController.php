@@ -61,23 +61,31 @@ class MovieDetailController extends BaseController
                 return $this->sendError('已经下架');
             }
 
-            $director = MovieDirector::where('id', $movie->director_id)->pluck('name', 'id')->all();
-            $company = MovieFilmCompanies::where('id', $movie->film_companies_id)->pluck('name', 'id')->all();
-            $series = MovieSeries::where('id', $movie->series_id)->pluck('name', 'id')->all();
-            $numbers = MovieNumber::where('id', $movie->number_id)->pluck('name', 'id')->all();
+            $director = MovieDirector::where('id', $movie->director_id)->select('name', 'id')->get();
+            $company = MovieFilmCompanies::where('id', $movie->film_companies_id)->select('name', 'id')->get();
+            $series = MovieSeries::where('id', $movie->series_id)->select('name', 'id')->get();
+            $numbers = MovieNumber::where('id', $movie->number_id)->select('name', 'id')->get();
 
             /*标签*/
             $labels = [];
             foreach ($movie->labels as $l) {
                 $labels[] = $l->cid;
             }
-            $labels = MovieLabel::whereIn('id', $labels)->pluck('name', 'id')->all();
+            $labels = MovieLabel::whereIn('id', $labels)->select('name', 'id')->get();
             /*演员*/
             $actors = [];
             foreach ($movie->actors as $a){
                 $actors[] = $a->aid;
             }
-            $actors = MovieActor::whereIn('id',$actors)->pluck('name','id')->all();
+            $actors = MovieActor::whereIn('id',$actors)->select('name','id')->get();
+
+            $map = [];
+            foreach ((array)json_decode($movie->map) as $img){
+                if(!$img){
+                    continue;
+                }
+                $map[] = Common::getImgDomain().$img;
+            }
 
             $data = [
                 "id" => $movie->id,
@@ -88,6 +96,7 @@ class MovieDetailController extends BaseController
                 "small_cover" => $movie->small_cover == ''?'':(Common::getImgDomain().$movie->small_cover),
                 "big_cove" => $movie->big_cove == ''?'':(Common::getImgDomain().$movie->big_cove),
                 "trailer" => $movie->trailer == ''?'':(Common::getImgDomain().$movie->trailer),
+                "map" => $map,
                 "score" => $movie->score,
                 "score_people" => $movie->score_people,
                 "comment_num" => $movie->comment_num,
