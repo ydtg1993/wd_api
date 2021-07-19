@@ -48,7 +48,7 @@ class MovieDetailController extends BaseController
                 ->leftJoin('movie_director_associate', 'movie.id', '=', 'movie_director_associate.mid')
                 ->leftJoin('movie_film_companies_associate', 'movie.id', '=', 'movie_film_companies_associate.mid')
                 ->leftJoin('movie_series_associate', 'movie.id', '=', 'movie_series_associate.mid')
-                ->leftjoin('movie_number_associate','movie.id','=','movie_number_associate.mid')
+                ->leftjoin('movie_number_associate', 'movie.id', '=', 'movie_number_associate.mid')
                 ->with('labels')
                 ->with('actors')
                 ->select('movie.*',
@@ -74,17 +74,17 @@ class MovieDetailController extends BaseController
             $labels = MovieLabel::whereIn('id', $labels)->select('name', 'id')->get();
             /*演员*/
             $actors = [];
-            foreach ($movie->actors as $a){
+            foreach ($movie->actors as $a) {
                 $actors[] = $a->aid;
             }
-            $actors = MovieActor::whereIn('id',$actors)->select('name','id')->get();
+            $actors = MovieActor::whereIn('id', $actors)->select('name', 'id')->get();
 
             $map = [];
-            foreach ((array)json_decode($movie->map) as $img){
-                if(!$img){
+            foreach ((array)json_decode($movie->map) as $img) {
+                if (!$img) {
                     continue;
                 }
-                $map[] = Common::getImgDomain().$img;
+                $map[] = Common::getImgDomain() . $img;
             }
 
             $data = [
@@ -93,9 +93,9 @@ class MovieDetailController extends BaseController
                 "name" => $movie->name,
                 "time" => $movie->time,
                 "release_time" => $movie->release_time,
-                "small_cover" => $movie->small_cover == ''?'':(Common::getImgDomain().$movie->small_cover),
-                "big_cove" => $movie->big_cove == ''?'':(Common::getImgDomain().$movie->big_cove),
-                "trailer" => $movie->trailer == ''?'':(Common::getImgDomain().$movie->trailer),
+                "small_cover" => $movie->small_cover == '' ? '' : (Common::getImgDomain() . $movie->small_cover),
+                "big_cove" => $movie->big_cove == '' ? '' : (Common::getImgDomain() . $movie->big_cove),
+                "trailer" => $movie->trailer == '' ? '' : (Common::getImgDomain() . $movie->trailer),
                 "map" => $map,
                 "score" => $movie->score,
                 "score_people" => $movie->score_people,
@@ -114,18 +114,18 @@ class MovieDetailController extends BaseController
                 'want_see' => 0
             ];
 
-            $uid = $request->userData['uid']??0;
-            if($uid>0){
-                if(UserSeenMovie::where(['uid'=>$uid,'mid'=>$request->input('id'),'status'=>1])->exists()) {
+            $uid = $request->userData['uid'] ?? 0;
+            if ($uid > 0) {
+                if (UserSeenMovie::where(['uid' => $uid, 'mid' => $request->input('id'), 'status' => 1])->exists()) {
                     $data['seen'] = 1;
                 }
-                if(UserWantSeeMovie::where(['uid'=>$uid,'mid'=>$request->input('id'),'status'=>1])->exists()){
+                if (UserWantSeeMovie::where(['uid' => $uid, 'mid' => $request->input('id'), 'status' => 1])->exists()) {
                     $data['want_see'] = 1;
                 }
             }
             $map = [];
-            foreach ((array)json_decode($movie->map, true) as $m){
-                $map[] = $m == '' ? '':Common::getImgDomain().$m;
+            foreach ((array)json_decode($movie->map, true) as $m) {
+                $map[] = $m == '' ? '' : Common::getImgDomain() . $m;
             }
             $data['map'] = $map;
             return $this->sendJson($data);
@@ -146,7 +146,7 @@ class MovieDetailController extends BaseController
             $validator = Validator()->make($request->all(), [
                 'id' => 'required|numeric',
                 'page' => 'required|int',
-                'pageSize'=> 'required|int',
+                'pageSize' => 'required|int',
             ]);
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
@@ -157,11 +157,13 @@ class MovieDetailController extends BaseController
             $skip = $pageSize * ($page - 1);
 
             $model = MovieComment::where([
-                'movie_comment.mid'=>$request->input('id'),
-                'movie_comment.status'=>1])
+                'movie_comment.mid' => $request->input('id'),
+                'movie_comment.status' => 1])
+                ->where(['movie_comment.type' => 1, 'movie_comment.status' => 1])
                 ->orderBy('movie_comment.type')
-                ->orderBy('id','DESC')
-                ->leftJoin('user_client','user_client.id','=','movie_comment.uid')
+                ->orderBy('id', 'DESC')
+                ->leftJoin('user_client', 'user_client.id', '=', 'movie_comment.uid')
+                ->with('replys')
                 ->select('movie_comment.*',
                     'user_client.nickname as user_client_nickname',
                     'user_client.avatar as user_client_avatar');
@@ -172,37 +174,19 @@ class MovieDetailController extends BaseController
                 ->get();
 
             $data = [];
-            foreach ($comments as $comment){
-                $struct = [
-                    'id'=>$comment->id,
-                    'comment'=>$comment->comment,
-                    'nickname'=>$comment->nickname,
-                    'like'=>$comment->like,
-                    'dislike'=>$comment->dislike,
-                    'avatar'=>$comment->avatar,
-                    'type'=>$comment->type,
-                    'reply_uid'=>$comment->reply_uid,
-                    'comment_time'=>$comment->comment_time,
-                    'reply_comments'=>[]
-                ];
-                if($comment->source_type == 1){
-                    $struct['nickname'] = $comment->user_client_nickname;
-                    $struct['avatar'] = $comment->user_client_avatar;
+            foreach ($comments as $comment) {
+                $struct = MovieComment::struct($comment);
+                foreach ($comment->replys as $reply) {
+                    $struct['reply_comments'][] = MovieComment::struct($reply);
                 }
-                if($comment->type == 1){
-                    $data[$comment->id] = $struct;
-                    continue;
-                }
-                if(isset($data[$comment->cid])){
-                    $data[$comment->cid]['reply_comments'][] = $struct;
-                }
+                $data[] = $struct;
             }
 
             return $this->sendJson([
-                'page'=>$page,
-                'pageSize'=>$pageSize,
-                'sum'=>$sum,
-                'list'=>$data
+                'page' => $page,
+                'pageSize' => $pageSize,
+                'sum' => $sum,
+                'list' => $data
             ]);
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
@@ -222,8 +206,8 @@ class MovieDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
-            $uid = $request->userData['uid']??0;
-            if($uid < 0){
+            $uid = $request->userData['uid'] ?? 0;
+            if ($uid < 0) {
                 throw new \Exception('无效用户token');
             }
 
@@ -258,16 +242,16 @@ class MovieDetailController extends BaseController
 
         $movie = Mv::with('actors')->select('id')->first();
         $actors = [];
-        foreach ($movie->actors as $a){
+        foreach ($movie->actors as $a) {
             $actors[] = $a->aid;
         }
-        $movie_ids = MovieActorAss::whereIn('aid',$actors)->pluck('mid')->all();
+        $movie_ids = MovieActorAss::whereIn('aid', $actors)->pluck('mid')->all();
         shuffle($movie_ids);
-        $movie_ids = array_slice($movie_ids,0,min(count($movie_ids),15));
+        $movie_ids = array_slice($movie_ids, 0, min(count($movie_ids), 15));
 
-        $movies = Mv::whereIn('id',$movie_ids)->get();
+        $movies = Mv::whereIn('id', $movie_ids)->get();
         $data = [];
-        foreach ($movies as $movie){
+        foreach ($movies as $movie) {
             $data[] = Mv::formatList($movie);
         }
         return $this->sendJson($data);
@@ -287,13 +271,13 @@ class MovieDetailController extends BaseController
         foreach ($movie->labels as $l) {
             $labels[] = $l->cid;
         }
-        $movie_ids = MovieLabelAss::whereIn('cid',$labels)->pluck('mid')->all();
+        $movie_ids = MovieLabelAss::whereIn('cid', $labels)->pluck('mid')->all();
         shuffle($movie_ids);
-        $movie_ids = array_slice($movie_ids,0,min(count($movie_ids),2));
+        $movie_ids = array_slice($movie_ids, 0, min(count($movie_ids), 2));
 
-        $movies = Mv::whereIn('id',$movie_ids)->get();
+        $movies = Mv::whereIn('id', $movie_ids)->get();
         $data = [];
-        foreach ($movies->toArray() as $movie){
+        foreach ($movies->toArray() as $movie) {
             $data[] = Mv::formatList($movie);
         }
         return $this->sendJson($data);
@@ -304,7 +288,8 @@ class MovieDetailController extends BaseController
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function action(Request $request){
+    public function action(Request $request)
+    {
         try {
             $validator = Validator()->make($request->all(), [
                 'id' => 'required|int',
@@ -315,19 +300,19 @@ class MovieDetailController extends BaseController
             }
             $id = $validator->validated()['id'];
             $comment = MovieComment::find($id);
-            if(empty($comment) || !$comment->exists){
+            if (empty($comment) || !$comment->exists) {
                 throw  new \Exception('非法参数');
             }
             $action = [
-                'target_id'=>$comment['id'],
-                'id'=>$comment['id'],
-                'owner_id'=>$comment['uid'],
-                'action'=>$validator->validated()['action'],
+                'target_id' => $comment['id'],
+                'id' => $comment['id'],
+                'owner_id' => $comment['uid'],
+                'action' => $validator->validated()['action'],
             ];
-            CommentActionLogic::userAction(array_merge($request->userData,$action));
+            CommentActionLogic::userAction(array_merge($request->userData, $action));
             return $this->sendJson([]);
-        }catch (\Exception $e){
-            Log::error($e->getMessage().'_'.$e->getFile().'_'.$e->getLine());
+        } catch (\Exception $e) {
+            Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
         }
     }

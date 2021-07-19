@@ -74,4 +74,28 @@ class MovieComment extends Model
             }
         });
     }
+
+    public function replys(){
+        return $this->hasMany(self::class,'cid','id');
+    }
+
+    public static function struct($comment){
+        $struct = [
+            'id'=>$comment->id,
+            'comment'=>$comment->comment,
+            'nickname'=>$comment->nickname,
+            'like'=>$comment->like,
+            'dislike'=>$comment->dislike,
+            'avatar'=>$comment->avatar,
+            'type'=>$comment->type,
+            'reply_uid'=>$comment->reply_uid,
+            'comment_time'=>$comment->comment_time,
+            'reply_comments'=>[]
+        ];
+        if($comment->source_type == 1){
+            $struct['nickname'] = $comment->user_client_nickname;
+            $struct['avatar'] = $comment->user_client_avatar;
+        }
+        return $struct;
+    }
 }
