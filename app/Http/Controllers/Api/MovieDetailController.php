@@ -154,7 +154,7 @@ class MovieDetailController extends BaseController
         foreach ($data as &$d){
             $d['is_like'] = 0;
             if($model->where(['uid'=>$uid,$column=>$d['id'],'status'=>1])->exists()) {
-                $dire['is_like'] = 1;
+                $d['is_like'] = 1;
             }
         }
     }
