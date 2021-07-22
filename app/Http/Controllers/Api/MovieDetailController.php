@@ -19,6 +19,10 @@ use App\Models\MovieLabelAss;
 use App\Models\MovieNumber;
 use App\Models\MovieSeries;
 use App\Models\Mv;
+use App\Models\UserLikeActor;
+use App\Models\UserLikeDirector;
+use App\Models\UserLikeFilmCompanies;
+use App\Models\UserLikeSeries;
 use App\Models\UserSeenMovie;
 use App\Models\UserWantSeeMovie;
 use App\Services\Logic\Common;
@@ -44,6 +48,7 @@ class MovieDetailController extends BaseController
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
+            $uid = $request->userData['uid']??0;
             $movie = Mv::where('movie.id', $request->input('id'))
                 ->leftJoin('movie_director_associate', 'movie.id', '=', 'movie_director_associate.mid')
                 ->leftJoin('movie_film_companies_associate', 'movie.id', '=', 'movie_film_companies_associate.mid')
@@ -61,10 +66,13 @@ class MovieDetailController extends BaseController
                 return $this->sendError('已经下架');
             }
 
-            $director = MovieDirector::where('id', $movie->director_id)->select('name', 'id')->get();
-            $company = MovieFilmCompanies::where('id', $movie->film_companies_id)->select('name', 'id')->get();
-            $series = MovieSeries::where('id', $movie->series_id)->select('name', 'id')->get();
-            $numbers = MovieNumber::where('id', $movie->number_id)->select('name', 'id')->get();
+            $director = MovieDirector::where('id', $movie->director_id)->select('name', 'id')->get()->all();
+            $this->is_like(UserLikeDirector::query(),$director,$uid,'did');
+            $company = MovieFilmCompanies::where('id', $movie->film_companies_id)->where('status',1)->select('name', 'id')->get()->all();
+            $this->is_like(UserLikeFilmCompanies::query(),$company,$uid,'film_companies_id');
+            $series = MovieSeries::where('id', $movie->series_id)->where('status',1)->select('name', 'id')->get()->all();
+            $this->is_like(UserLikeSeries::query(),$series,$uid,'series_id');
+            $numbers = MovieNumber::where('id', $movie->number_id)->where('status',1)->select('name', 'id')->get();
 
             /*标签*/
             $labels = [];
@@ -77,7 +85,14 @@ class MovieDetailController extends BaseController
             foreach ($movie->actors as $a) {
                 $actors[] = $a->aid;
             }
-            $actors = MovieActor::whereIn('id', $actors)->select('name', 'id')->get();
+            $actors = MovieActor::whereIn('id', $actors)->select('name', 'id')->get()->all();
+            foreach ($actors as &$actor){
+                $actor['is_like'] = 0;
+                if($uid>0 &&
+                    UserLikeActor::where(['uid'=>$uid,'aid'=>$actor['id'],'status'=>1])->exists()){
+                    $data['is_like'] = 1;
+                }
+            }
 
             $map = [];
             foreach ((array)json_decode($movie->map) as $img) {
@@ -114,7 +129,6 @@ class MovieDetailController extends BaseController
                 'want_see' => 0
             ];
 
-            $uid = $request->userData['uid'] ?? 0;
             if ($uid > 0) {
                 if (UserSeenMovie::where(['uid' => $uid, 'mid' => $request->input('id'), 'status' => 1])->exists()) {
                     $data['seen'] = 1;
@@ -132,6 +146,16 @@ class MovieDetailController extends BaseController
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
+        }
+    }
+
+    private function is_like($model,&$data,$uid,$column)
+    {
+        foreach ($data as &$d){
+            $d['is_like'] = 0;
+            if($model->where(['uid'=>$uid,$column=>$d['id'],'status'=>1])->exists()) {
+                $dire['is_like'] = 1;
+            }
         }
     }
 
