@@ -90,7 +90,7 @@ class MovieDetailController extends BaseController
                 $actor['is_like'] = 0;
                 if($uid>0 &&
                     UserLikeActor::where(['uid'=>$uid,'aid'=>$actor['id'],'status'=>1])->exists()){
-                    $data['is_like'] = 1;
+                    $actor['is_like'] = 1;
                 }
             }
 
