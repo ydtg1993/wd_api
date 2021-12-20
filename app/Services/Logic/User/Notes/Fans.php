@@ -15,6 +15,7 @@ use App\Models\UserLikeActor;
 use App\Models\UserLikeUser;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
+use App\Services\Logic\User\UserInfoLogic;
 
 class Fans extends NotesBase
 {
@@ -36,6 +37,12 @@ class Fans extends NotesBase
         if($goal_id <= 0)
         {
             $this->errorInfo->setCode(500,'无效的目标用户数据!');
+            return false;
+        }
+
+        if($goal_id == $uid)
+        {
+            $this->errorInfo->setCode(500,'自己无法对自己操作!');
             return false;
         }
 
@@ -72,6 +79,10 @@ class Fans extends NotesBase
         $num_fans = UserLikeUser::where('goal_uid',$goal_id)->where('status',1)->count();
         UserClient::where('id',$goal_id)->update(['fans' =>$num_fans]);
 
+        $userInfoObj = new UserInfoLogic();
+        $userInfoObj->getUserInfo($uid,false);
+        $userInfoObjGoal_id = new UserInfoLogic();
+        $userInfoObjGoal_id->getUserInfo($goal_id,false);
         RedisCache::clearCacheManageAllKey('userLikeUser',$uid);//清楚指定用户关注/粉丝的缓存
         RedisCache::clearCacheManageAllKey('userLikeUser',$goal_id);//清楚指定用户关注/粉丝的缓存
         return $id;
@@ -91,6 +102,8 @@ class Fans extends NotesBase
             $this->errorInfo->setCode(500,'无效的用户信息!');
             return [];
         }
+
+        $thisUid = $data['thisUid']??0;
 
         $type = $data['type']??1; // 1是关注列表 2是粉丝列表
 
@@ -146,12 +159,47 @@ class Fans extends NotesBase
                 }
                 return $reData;
             },['uid'=>$uid,'page'=>$page,'pageSize'=>$pageSize],$isCache,$uid);
+
+            if($thisUid > 0)
+            {
+                $reDataList = $reData['list']??array();
+                $reDataListDis = [];
+                $idsTempUserLikeList = [];
+                $idsTemp = [];
+                foreach ($reDataList as $valueList)
+                {
+                    $idsTemp[] = $valueList['id']??0;
+                }
+
+                if(count($idsTemp)>0)
+                {
+                    $idsTempUserLike = UserLikeUser::where('uid',$thisUid)
+                        ->where('status',1)
+                        ->whereIn('goal_uid',$idsTemp)
+                        ->get();
+
+                    foreach ($idsTempUserLike as $valueUserLike)
+                    {
+                        $idsTempUserLikeList[$valueUserLike['goal_uid']??0] = $valueUserLike['goal_uid']??0;
+                    }
+                }
+
+                foreach ($reDataList as $valueListData)
+                {
+                    $valueListDataTemp = $valueListData;
+                    $valueListDataTemp['is_like'] = (($valueListData['id']??0)<=0)?0:($idsTempUserLikeList[$valueListData['id']??0]??0);
+                    $valueListDataTemp['is_like'] = ($valueListDataTemp['is_like'] <= 0) ? 0:1;
+                    $reDataListDis[] = $valueListDataTemp;
+                }
+                $reData['list'] = $reDataListDis;
+
+            }
         }
         else
         {
             $reData = RedisCache::getCacheData('userLikeUser','like:fans:list:',function () use ($data,$page,$pageSize,$uid)
             {
-                $reData = [];
+                $reData = ['list'=>[],'sum'=>0];
                 $likeList = UserLikeUser::where('goal_uid',$uid)
                     ->where('status',1)
                     ->orderBy('like_time','desc')
@@ -160,6 +208,8 @@ class Fans extends NotesBase
                     ->get()
                     ->pluck('uid')
                     ->toArray();
+                $reData['sum'] = UserLikeUser::where('goal_uid',$uid)
+                    ->where('status',1)->count();
 
                 $likeListTemp = [];
                 foreach ($likeList as $val)
@@ -190,11 +240,47 @@ class Fans extends NotesBase
 
                     foreach ($likeList as $val)
                     {
-                        $reData[] = ($tempData[$val]??[]);
+                        $reData['list'][] = ($tempData[$val]??[]);
                     }
                 }
                 return $reData;
             },['uid'=>$uid,'page'=>$page,'pageSize'=>$pageSize],$isCache,$uid);
+
+            if($thisUid > 0)
+            {
+                $reDataList = $reData['list']??array();
+                $reDataListDis = [];
+                $idsTempUserLikeList = [];
+                $idsTemp = [];
+                foreach ($reDataList as $valueList)
+                {
+                    $idsTemp[] = $valueList['id']??0;
+                }
+
+                if(count($idsTemp)>0)
+                {
+                    $idsTempUserLike = UserLikeUser::where('uid',$thisUid)
+                        ->where('status',1)
+                        ->whereIn('goal_uid',$idsTemp)
+                        ->get();
+
+                    foreach ($idsTempUserLike as $valueUserLike)
+                    {
+                        $idsTempUserLikeList[$valueUserLike['goal_uid']??0] = $valueUserLike['goal_uid']??0;
+                    }
+                }
+
+                foreach ($reDataList as $valueListData)
+                {
+                    $valueListDataTemp = $valueListData;
+                    $valueListDataTemp['is_like'] = (($valueListData['id']??0)<=0)?0:($idsTempUserLikeList[$valueListData['id']??0]??0);
+                    $valueListDataTemp['is_like'] = ($valueListDataTemp['is_like'] <= 0) ? 0:1;
+                    $reDataListDis[] = $valueListDataTemp;
+                }
+                $reData['list'] = $reDataListDis;
+
+            }
+
         }
 
         return (is_array($reData) || count($reData) >0 )? $reData:[];

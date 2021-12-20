@@ -113,7 +113,7 @@ class RedisCache
             $redata = is_array($redata) ||is_object($redata) ?json_encode($redata):
                 $redata;
             //加入节点管理器
-            self::addCacheManageKey($node,$key,$uid);
+            self::addCacheManageKey($node,$redisKey,$uid);
             Redis::set($redisKey,$redata,'EX',self::getTime($node,$key));
             return json_decode($redata,true);
         }
@@ -121,5 +121,75 @@ class RedisCache
         return json_decode($redata,true) ;
     }
 
+    public static function getCacheDataOnly($node,$key,$keyData = array(),$isCache = true,$uid = 0)
+    {
+        $cacheConf = self::getCacheConfig();
+        $redisKey = self::getKey($key,$keyData);
+        $redata = $isCache ? Redis::get($redisKey) :NULL;
+        return json_decode($redata,true) ;
+    }
+    public static function setCacheDataOnly($node,$key,$redata,$keyData = array(),$isCache = true,$uid = 0)
+    {
+        $cacheConf = self::getCacheConfig();
+        $redisKey = self::getKey($key,$keyData);
+
+        if($redata === '' || $redata === null)
+        {
+            return $redata;
+        }
+
+        if(is_array($redata) && count($redata) <= 0 )
+        {
+            return $redata;
+        }
+
+        $redata = is_array($redata) ||is_object($redata) ?json_encode($redata):$redata;
+        
+        //加入节点管理器
+        self::addCacheManageKey($node,$redisKey,$uid);
+        Redis::set($redisKey,$redata,'EX',self::getTime($node,$key));
+        return json_decode($redata,true);
+    }
+
+    /**
+     * 写入数据到集合 
+     */
+    public static function addSets($key,$text)
+    {
+        $res = Redis::sAdd($key,$text);
+
+        return $res;
+    }
+
+    /**
+     * 读取集合中所有的数据 
+     */
+    public static function getSetAll($key)
+    {
+        $res = Redis::sMembers($key);
+        
+        return $res;
+    }
+
+    /**
+     * 写入有序集合 
+     */
+    public static function addZSets($key,$id,$text)
+    {
+
+        $res = Redis::command('ZADD',[$key,$id,$text]);
+
+        return $res;
+    }
+
+    /**
+     * 读取集合中所有的数据 
+     */
+    public static function getZSetAll($key)
+    {
+        $res = Redis::command('ZRANGE',[$key,0,100]);
+        
+        return $res;
+    }
 
 }

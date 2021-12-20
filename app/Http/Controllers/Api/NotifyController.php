@@ -39,13 +39,15 @@ class NotifyController extends BaseController
 
             $validator = Validator()->make($request->all(), [
                 'type'  => 'int',
-                'is_read'  => 'int|between:0,1',
+                'isRead'  => 'int|between:0,1',
+                'page'  => 'int',
+                'pageSize'  => 'int',
             ]);
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
             //$where = array_merge($validator->validated(),['uid'=>$request->userData['uid']]);
-            $where = array_merge($validator->validated(),['uid'=>1]);
+            $where = array_merge($validator->validated(),['uid'=>$request->userData['uid']]);
             $res = $this->logic->getNotifyList($where);
             return $this->sendJson($res);
         }catch (\Exception $e){

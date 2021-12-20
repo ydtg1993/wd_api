@@ -58,12 +58,13 @@ class Kernel extends HttpKernel
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
-        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+//        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'throttle' => \App\Http\Middleware\ThrottleRequest::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'allow_origin' => \App\Http\Middleware\EnableCrossRequestMiddleware::class,//跨域
         'token' => \App\Http\Middleware\TokenMiddleware::class,//TOKEN
         'verify_captcha' => \App\Http\Middleware\VerifyCaptcha::class,//TOKEN
-        'tokens' => \App\Http\Middleware\TokensMiddleware::class,//TOKEN
+	'tokens' => \App\Http\Middleware\TokensMiddleware::class,//TOKEN
     ];
 
     /**

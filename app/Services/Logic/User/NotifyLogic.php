@@ -14,6 +14,7 @@ use App\Models\MovieActor;
 use App\Models\MovieComment;
 use App\Models\Notify;
 use App\Models\UserLikeActor;
+use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use Illuminate\Support\Facades\Redis;
 
@@ -82,17 +83,18 @@ class NotifyLogic
         {
             return [];
         }
-
         $page = $data['page']??1;
         $pageSize = $data['pageSize']??10;
 
         $baseQuery = Notify::when($data['uid'],function ($query,$data) {
             return $query->where('uid', '=', $data);
-        })->when(isset($data['type']),function ($query,$data) {
-            return $query->where('type', '=', $data);
-        })->when(isset($data['isRead']),function ($query,$data) {
-            return $query->where('is_read', '=', $data);
         });
+        if(isset($data['type'])){
+            $baseQuery=$baseQuery->where('type', '=', $data['type']);;
+        }
+        if(isset($data['isRead'])){
+                $baseQuery=$baseQuery->where('is_read', '=', $data['isRead']);
+        }
         $res['count'] = $baseQuery->count();
         if( $res['count']  <=0 ){
             return $res;
@@ -112,9 +114,14 @@ class NotifyLogic
         $allComment = $this->getCommentContent();
         $allMovie = $this->getMovieContent();
 
+        //读取配置
+        $notifyCfg = config('notify.display_front_template');
+
         $allAvatar = $this->getUserAvatar($ret->pluck('sender_id'));
         foreach ($notify as $k=>$v) {
+            $notify[$k]['sender_avatar'] = $v['sender_avatar']?Common::getImgDomain().$v['sender_avatar']:'';
             switch ($v['type']) {
+                //发送人头像
                 case self::TYPE_COMMENT://评价
                     $v['target_id'] ? $notify[$k]['content'][] = $allComment[$v['target_id']] : $notify[$k]['content'][] = '';
                     $v['target_source_id'] ? $notify[$k]['content'][] = config('notify.display_front_template')[$v['type']]
@@ -126,8 +133,17 @@ class NotifyLogic
                         . $allComment[$v['target_source_id']] : $allMovie[$k]['content'][] = '';
                     break;
                 default:
-                    $v['target_id'] ? $notify[$k]['content'][] = config('notify.display_front_template')[$v['type']] .
-                        $allComment[$v['target_id']] : $notify[$k]['content'][] = '';
+                    if($v['target_id'])
+                    {
+                        $notify[$k]['content'][] = $notifyCfg[$v['type']] . $allComment[$v['target_id']];
+                    } else {
+                        $tmp = [];
+                        $tmp[] = $notify[$k]['content'];
+                        $notify[$k]['content'] = $tmp;
+                    }
+
+                    /*$v['target_id'] ? $notify[$k]['content'][] = $notifyCfg[$v['type']] .
+                        $allComment[$v['target_id']] : $notify[$k]['content'][] = '';*/
                     break;
             }
        }

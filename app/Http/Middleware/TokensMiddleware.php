@@ -11,6 +11,7 @@ namespace App\Http\Middleware;
 use App\Services\Logic\Common;
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use App\Models\UserBlack;
 
 class TokensMiddleware
 {
@@ -40,6 +41,20 @@ class TokensMiddleware
             ];//是否token校验IP
             return $next($request);
         }
+
+        //判断拉黑的用户不能登陆
+        $blackDay = UserBlack::getBlackDay($tokenData['UserBase']['uid'],3);
+        if($blackDay>=1)
+        {
+            $request->tokenData = null;
+            $request->userData = [
+                'uid'=>0,//没有token 代表未登录 0 表示未登录
+                'u_number'=>'',
+                'ip'=>$request->getClientIp()
+            ];//是否token校验IP
+            return $next($request);
+        }
+
         $request->tokenData = $tokenData;
         $request->userData = [
             'uid'=>$tokenData['UserBase']['uid']??0,

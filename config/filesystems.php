@@ -59,9 +59,13 @@ return [
             'driver' => 'local',
             'root' => public_path('uploads/local'),
         ],
-        'upload_profile_files' => [
+        'upload_piece_list_files' => [
             'driver' => 'local',
-            'root' => public_path('uploads/local/profile_photo'),
+            'root' => public_path('uploads/piece_list'),
+        ],
+        'upload_avatar' => [
+            'driver' => 'local',
+            'root' => public_path('uploads/avatar'),
         ],
         's3' => [
             'driver' => 's3',
@@ -73,5 +77,8 @@ return [
         ],
 
     ],
+
+    //avatar 默认头像路径
+    'avatar_path'=>''
 
 ];

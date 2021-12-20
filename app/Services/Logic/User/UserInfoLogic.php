@@ -15,6 +15,7 @@ use App\Services\Logic\BaseLogic;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Redis;
 
 class UserInfoLogic extends BaseLogic
 {
@@ -189,11 +190,11 @@ class UserInfoLogic extends BaseLogic
                 return array();
             }
             $userBase = $userBase->toArray();
-            if(count($userBase) <= 0)
+            if(($userBase['id']??0) <= 0)
             {
                 return array();
             }
-            $userBase['avatar'] = Common::getImgDomain().$userBase['avatar']??'';
+            $userBase['avatar'] = (($userBase['avatar']??'') == '')?'':(Common::getImgDomain().($userBase['avatar']??''));
             $reData = $userBase;
             return $reData;
         },['id'=>$id,],$is_cache);

@@ -32,6 +32,7 @@ class ConfLogic extends HandleLogic
         4=>'friend_link',
         5=>'private_item',
         6=>'magnet_link',
+        7=>'comment_notes',
     ];
 
     /**
@@ -93,6 +94,11 @@ class ConfLogic extends HandleLogic
             ],
             'magnet_link'=>[
                 'url'=>'',
+                'content'=>'',
+            ],
+            'comment_notes'=>[
+                'isopen'=>0,
+                'countdown'=>0,
                 'content'=>'',
             ],
         ];

@@ -44,7 +44,7 @@ use \Overtrue\EasySms\Exceptions\GatewayErrorException;
      */
     public  static function  isMobile($str)
     {
-        return (preg_match("/^1[34578]\d{9}$/", $str))?true:false;
+        return (preg_match("/^1[345678]\d{9}$/", $str))?true:false;
     }
 
     /**

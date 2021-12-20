@@ -2,14 +2,115 @@
 
 namespace App\Models;
 
+use App\Services\Logic\RedisCache;
 use App\Services\Logic\Common;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Movie extends Model
 {
     protected $table = 'movie';
 
     const pagesize = 10;//默认页数
+
+    /**
+     * 
+     * 读取数据通过缓存 
+     */
+    public function getMovieListByCache($data,$isCache)
+    {
+        $page = $data['page']??1;
+        $pageSize = $data['pageSize']??10;
+        $cid = $data['cid']??0;
+
+        $reData = self::getMovieList($data);
+
+        $reData = RedisCache::getCacheDataOnly('movie','movie:category:list:',['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
+        if(!$reData){
+            $reData = self::getMovieList($data);
+            RedisCache::setCacheDataOnly('movie','movie:category:list:',$reData,['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
+        }
+        return $reData;
+    }
+
+    /**
+     * 读取影片列表 
+     */
+    public static function getMovieList($data)
+    {
+        $page = $data['page']??1;
+        $pageSize = $data['pageSize']??10;
+        $cid = $data['cid']??0;
+
+        //判断搜索条件
+        $where = ' status =1 and is_up=1 ';
+        if($data['home_type']==1){  //热门
+            $where = 'is_hot = 1 and '.$where;
+        }
+        if($cid>0) {   //分类
+            $where = 'cid = '.$cid.' and '.$where;
+        }
+        if(isset($data['is_subtitle']) && $data['is_subtitle']){  
+            $where = 'is_subtitle = '.$data['is_subtitle'].' and '.$where;
+        }
+        if(isset($data['is_download']) && $data['is_download']){
+            $where = 'is_download = '.$data['is_download'].' and '.$where;
+        }
+        if(isset($data['is_short_comment']) && $data['is_short_comment']){
+            $where = 'is_short_comment = '.$data['is_short_comment'].' and '.$where;
+        }
+        if(isset($data['day_limit'])){
+            $where = "flux_linkage_time between '".date('Y-m-d 00:00:00',time()-3600*24)."' and '".date('Y-m-d 23:59:59',time())."' and ".$where;
+        }
+
+        //排序
+        $orderby = 'id desc';
+        if(isset($data['release_time']) && $data['release_time']){
+            $orderby = ' release_time desc ';
+            if($data['release_time']==1){
+                $orderby = ' release_time asc ';
+            }
+        }
+        if(isset($data['flux_linkage_time']) && $data['flux_linkage_time']){
+            $orderby = ' flux_linkage_time desc ';
+            if($data['flux_linkage_time']==1){
+                $orderby = ' flux_linkage_time asc ';
+            }
+        }
+        if($data['home_type']==1){
+            $orderby = ' score desc,weight desc';
+        }
+
+        $offset = ($page-1) * $pageSize;  //游标
+        $limit = $pageSize;   //每页读取多少条
+
+        $reData = ['list'=>[],'sum'=>0];
+
+        //如果包含分类条件
+        $res=[];
+        $rows = DB::select('select id,name,number,release_time,created_at
+                ,is_download,is_subtitle,is_short_comment,is_hot
+                ,new_comment_time,flux_linkage_time,comment_num,score
+                ,small_cover,big_cove 
+                from movie 
+                where '.$where.' 
+                order by '.$orderby.' limit '.$offset.','.$limit.';');
+        $count = DB::select('select count(0) as nums
+                from movie 
+                where '.$where.';');
+
+        //加工数据
+        $rows = Common::objectToArray($rows);
+        foreach($rows as $v)
+        {
+            $res[] = Movie::formatList($v);
+        }
+
+        $reData['list'] = $res;
+        $reData['sum'] = $count[0]->nums; 
+
+        return $reData;
+    }
 
     /**
      * 格式化影片列表数据
@@ -87,40 +188,29 @@ class Movie extends Model
     }
 
     /**
-     * ELASTICSEARCH 模糊搜索同时支持 [车牌，标题，描述]
-     * @param $keyword
-     * @param $page
-     * @param int $pageSize
-     * @return array
-     */
-    public static function searchAPage($keyword, $page,$pageSize = self::pagesize)
+     * 影片加权分新增
+     * @param   mid     影片id
+     * @param   score   加权更新分数
+    */
+    public static function weightAdd($mid,$score=0)
     {
-        if(empty($keyword)){
-            return [];
-        }
-
-
-        $query = VideoElasticquent::getQueryArray($keyword,$page,$pageSize);
-        if(empty($query)){
-            return [];
-        }
-
-        $videos = VideoElasticquent::complexSearch($query);
-
-        $total = $videos->totalHits();
-        $more  = (int)(bool)($pageSize * $page < $total);
-
-        return [
-            'more' => $more,
-            'total'=>$total,
-            'video' => $videos,
-        ];
+        //DB::enableQueryLog();
+        Movie::where('id',$mid)->increment('weight', $score);
+        //print_r(DB::getQueryLog());
+        return ;
     }
 
-
-
-
-
-
+    /**
+     * 影片加权分减少
+     * @param   mid     影片id
+     * @param   score   加权更新分数
+    */
+    public static function weightLose($mid,$score=0)
+    {
+        //DB::enableQueryLog();
+        Movie::where('id',$mid)->decrement('weight', $score);
+        //print_r(DB::getQueryLog());
+        return ;
+    }
 
 }

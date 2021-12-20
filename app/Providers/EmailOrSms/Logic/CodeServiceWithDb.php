@@ -73,7 +73,7 @@ class CodeServiceWithDb{
                 'register_message'=>App::make('registerMessage',['sms'=>(object)['code'=>$code]]),
             ];
             if(!$this->frequencyLimit($user)){
-                throw  new \Exception(self::Limit_TIME.'秒内不能再发送短信');
+                throw  new \Exception(self::Limit_TIME.'秒内不能再发送验证码');
             }
             $insert = [
                 'emailorphone'=>$mobile,
@@ -108,7 +108,7 @@ class CodeServiceWithDb{
             $code = mt_rand(100000,999999);
             $content = sprintf($sprintfFormat,$code);
             if(!$this->frequencyLimit($user,'email')){
-                throw  new \Exception(self::Limit_TIME.'秒内不能再发送短信');
+                throw  new \Exception(self::Limit_TIME.'秒内不能再发送验证码');
             }
             $insert = [
                 'emailorphone'=>$email,

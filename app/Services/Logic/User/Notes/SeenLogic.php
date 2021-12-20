@@ -46,7 +46,7 @@ class SeenLogic  extends NotesBase
                 return false;
             }
 
-            $comment = $data['comment']??0;
+            $comment = $data['comment']??'';
             if(strlen($comment) <= 0 || strlen($comment) >= 500)
             {
                 $this->errorInfo->setCode(500,'评论数据长度不合法！');
@@ -57,7 +57,7 @@ class SeenLogic  extends NotesBase
             MovieScoreNotes::add($mid,$uid,$score);
 
             //添加评论
-            MovieComment::add($uid,$mid,$comment);
+            MovieComment::add($uid,$mid,$comment,$score);
         }
 
         $id = 0;

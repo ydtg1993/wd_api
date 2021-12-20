@@ -10,6 +10,7 @@ class MovieLog extends Model
 {
     protected $table = 'movie_log';
 
+    const UPDATED_AT = null;
 
     /**
      * 添加影片浏览记录

@@ -8,11 +8,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\UserBlack;
+use App\Models\Filter;
 use App\Providers\EmailOrSms\Logic\SmsHandle;
 use App\Services\Logic\Common;
 use App\Services\Logic\User\UserInfoLogic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Symfony\Component\Console\Input\Input;
 
 class UserController extends  BaseController
 {
@@ -69,8 +72,17 @@ class UserController extends  BaseController
         if($userId <= 0)
         {
             return $this->sendError('登录失败！');
-        }elseif ($userInfo['status']>1){
-            return $this->sendError('账号已被拉黑 请联系管理员！');
+        }elseif ($userInfo['status']>2){
+            $ext = '拉黑';
+            $days = UserBlack::getBlackDay($userId,3);
+            $msg = "您的账户已被".$ext.$days."天，请在解禁后登陆";
+
+            if($days>999)
+            {
+                $msg = "您的账户已被永久".$ext;
+            }
+
+            return $this->sendError($msg);
         }
 
         $tempData = [
@@ -101,6 +113,11 @@ class UserController extends  BaseController
             return $this->sendJson('',201);
         }
 
+        /*if(Filter::check($data['account'])==true)
+        {
+            return $this->sendJson([],500,'您的用户名有敏感词，请更改！');
+        }*/
+
         $userInfo = new UserInfoLogic();
         $reData = (intval($data['type']??1) == 1) ?
             $userInfo->registerPhone($data['account']??'',$data['pwd']??'',$data['code']??''):
@@ -115,6 +132,7 @@ class UserController extends  BaseController
 
     }
 
+    protected $tmpUid = 0;
     /**
      * 修改用户信息
      * @param Request $request
@@ -123,31 +141,32 @@ class UserController extends  BaseController
      */
     public function changeUserInfo( Request  $request)
     {
-
+        $this->tmpUid = $request->userData['uid'];
         $validator = Validator()->make($request->all(), [
-            'nickname' => 'string',
-            'sex' => 'int',
-            'avatar' => 'string',
-            'intro' => 'string',
-            'le_phone_status' => 'int|between:1,2',
-            'le_email_status' => 'int|between:1,2',
+            'nickname' => 'nullable|string',
+            'sex' => 'nullable|int',
+            'avatar' => 'nullable|string',
+            'intro' => 'nullable|string',
+            'le_phone_status' => 'nullable|int|between:1,2',
+            'le_email_status' => 'nullable|int|between:1,2',
             'phone' => [
-                'string',
+                'nullable',
                 function ($attribute, $value, $fail) {
                     if(!Common::isMobile($value)){
                         $fail($attribute.' 非法手机号');
                     }
-                    if(UserInfoLogic::checkPhone($value)){
+                    $userInfo = UserInfoLogic::getUserInfoByPhone($value);
+                    if(!empty($userInfo) && $userInfo['id']!=$this->tmpUid){
                         $fail($attribute.' 已存在.');
                     }
                 },
             ],
             'email' => [
-                'string',
+                'nullable',
                 'email',
                 function ($attribute, $value, $fail) {
-
-                    if(UserInfoLogic::checkEmail($value)){
+                    $userInfo = UserInfoLogic::getUserInfoByEmail($value);
+                    if(!empty($userInfo) && $userInfo['id']!=$this->tmpUid){
                         $fail($attribute.' 已存在.');
                     }
                 },
@@ -173,6 +192,7 @@ class UserController extends  BaseController
         $uData = $userInfoObj->getUserInfo($request->userData['uid']);//更新登录信息
         unset($uData['pwd']);
         $uData['avatar'] = empty($uData['avatar'])?config('filesystems.avatar_path'):$uData['avatar'];
+        $uData['saveUrl'] = empty($uData['avatar'])?config('filesystems.avatar_path'):strval(substr($uData['avatar'],strlen(Common::getImgDomain())));;
         return $this->sendJson($uData);
     }
 
@@ -187,14 +207,13 @@ class UserController extends  BaseController
             $data['emailOrPhone'] = $request->get('emailOrPhone');
             if (SmsHandle::isMobile($request->get('emailOrPhone'))) {
                 App::make('CodeServiceWithDb')->sendSmsCode($data,$request->get('emailOrPhone'),'register_message');
-        } else {
+            } else {
                 //TODO待优化
-                $subject = '欢迎来到 HDB';
+                $subject = '【黄豆瓣】验证码';
                 $sprintfFormat = '
-                    欢迎加入 HDB
-                    您已注册成功，用户名为：'.$data['emailOrPhone'].'
-                        %s
-                    请复制上方验证码到验证页面完成激活操作
+                    <p>用户名：'.$data['emailOrPhone'].'</p>
+                    <p><div style="text-align: center;font-size:28px;font-weight:900;">%s</div></p>
+                    <p>请复制上方验证码到验证页面完成操作</p>
                 ';
                 App::make('CodeServiceWithDb')->sendEmailCode($data,$request->get('emailOrPhone'),$subject,$sprintfFormat);
             }
@@ -272,6 +291,111 @@ class UserController extends  BaseController
             return $this->sendError('操作异常:'.$e->getMessage());
         }
         return $this->sendJson([]);
+
+    }
+
+    /**
+     * 通过验证码登陆
+    */
+    public function loginWithVerifyCode(Request $request)
+    {
+        //输入过滤
+        $data = $request->all();
+        $template = ['emailOrPhone'=>'','code'=>0];
+        if(!$this->haveToParam($template,$data))
+        {
+            return $this->sendJson('',202);
+        }
+        $data = $this->paramFilter($template,$data);
+        if($data  === false)
+        {
+            return $this->sendJson('',201);
+        }
+
+        //验证码检测
+        $ip = $request->getClientIp();
+        $account = $request->input('emailOrPhone');
+        $code = $request->input('code');
+
+        //第一步，先判断验证码是否正确
+        $res = false;
+        $ty = 'email';
+        if (SmsHandle::isMobile($account)) 
+        {
+            $ty = 'phone';
+            $res = App::make('CodeServiceWithDb')->checkCode($account,'phone',$code);
+        }else{
+            $res = App::make('CodeServiceWithDb')->checkCode($account,'email',$code);
+        }
+
+        if($res===false){
+            return $this->sendJson([],500,'验证码错误！');
+        }
+        if($res===-1){
+            return $this->sendJson([],500,'验证码超时！');
+        }
+
+        //第二部，判断是否账户是否存在
+        $userInfoObj = new UserInfoLogic();
+        $userInfo = false;
+        if ($ty=='phone') 
+        {
+            $userInfo = $userInfoObj->getPhoneUser($account??'');
+        }else{
+            $userInfo = $userInfoObj->getEmailUser($account??'');
+        }
+        
+        //不存在时，创建新账户
+        if(!$userInfo)
+        {
+            $pwd = 'aa123456';
+            if($ty=='phone')
+            {
+                $userInfo = $userInfoObj->registerPhone($account,$pwd,$code);
+            }else{
+                $userInfo = $userInfoObj->registerEmail($account,$pwd,$code);
+            }
+
+            $userId = $userInfo['userId'];
+            $tempData = [
+                'login_ip'=>$request->getClientIp(),
+                'login_time'=>date('Y-m-d H:i:s',time()),
+            ];//更新登录记录
+
+            $userInfoObj->alterUserBase($tempData,$userId);//更新登录信息
+
+            //返回登录信息
+            $redata = array();
+            $redata['token'] = UserInfoLogic::getTokenIsId($userId);
+            return $this->sendJson($redata);
+        }
+
+        //存在时，直接登陆
+        $userId = $userInfo['id'];
+        if ($userInfo['status']>2){
+            $ext = '拉黑';
+            $days = UserBlack::getBlackDay($userId,3);
+            $msg = "您的账户已被".$ext.$days."天，请在解禁后登陆";
+
+            if($days>999)
+            {
+                $msg = "您的账户已被永久".$ext;
+            }
+
+            return $this->sendError($msg);
+        }
+
+        $tempData = [
+            'login_ip'=>$request->getClientIp(),
+            'login_time'=>date('Y-m-d H:i:s',time()),
+        ];//更新登录记录
+
+        $userInfoObj->alterUserBase($tempData,$userId);//更新登录信息
+
+        //返回登录信息
+        $redata = array();
+        $redata['token'] = UserInfoLogic::getTokenIsId($userId);
+        return $this->sendJson($redata);
 
     }
 

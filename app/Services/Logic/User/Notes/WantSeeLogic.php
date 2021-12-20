@@ -88,7 +88,7 @@ class WantSeeLogic extends NotesBase
             $reData = ['list'=>[],'sum'=>0];
             $userWantSeeDb = UserWantSeeMovie::where('user_want_see_movie.uid',$uid)
                 ->where('user_want_see_movie.status',1)
-                ->leftJoin('movie', 'movie.id', '=', 'user_want_see_movie.uid');
+                ->leftJoin('movie', 'movie.id', '=', 'user_want_see_movie.mid');
             /*->leftJoinSub($movieDbObj,'movie',function ($join)
             {
                 $join->on('user_want_see_movie.mid', '=', 'movie.id');

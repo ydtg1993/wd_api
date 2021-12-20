@@ -9,6 +9,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\ComplaintRequest;
+use App\Models\UserClient;
+use App\Models\UserBlack;
 use App\Models\MovieActor;
 use App\Models\MovieActorAss;
 use App\Models\MovieComment;
@@ -25,11 +27,13 @@ use App\Models\UserLikeFilmCompanies;
 use App\Models\UserLikeSeries;
 use App\Models\UserSeenMovie;
 use App\Models\UserWantSeeMovie;
+use App\Services\Logic\User\UserInfoLogic;
 use App\Services\Logic\Common;
 use App\Services\Logic\Movie\CommentActionLogic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Filter;
 
 class MovieDetailController extends BaseController
 {
@@ -85,21 +89,31 @@ class MovieDetailController extends BaseController
             foreach ($movie->actors as $a) {
                 $actors[] = $a->aid;
             }
-            $actors = MovieActor::whereIn('id', $actors)->select('name', 'id')->get()->all();
+            $actors = MovieActor::whereIn('id', $actors)->select('name', 'id','sex')->orderBy('sex','asc')->get()->all();
             foreach ($actors as &$actor){
                 $actor['is_like'] = 0;
                 if($uid>0 &&
                     UserLikeActor::where(['uid'=>$uid,'aid'=>$actor['id'],'status'=>1])->exists()){
                     $actor['is_like'] = 1;
                 }
+                $actor['sex'] = $actor['sex']?$actor['sex']:'♀';
+                $actor['name'] = $actor['name'].$actor['sex'];
             }
 
             $map = [];
-            foreach ((array)json_decode($movie->map) as $img) {
+            foreach (json_decode($movie->map,true) as $img) {
                 if (!$img) {
                     continue;
                 }
-                $map[] = Common::getImgDomain() . $img;
+                $imgTemp = $img['img']??'';
+                $imgTempBig = $img['big_img']??'';
+                if($imgTemp=='')
+                {
+                    continue;
+                }
+                $imgTemp =  Common::getImgDomain().$imgTemp;
+                $imgTempBig = ($imgTempBig=='')?$imgTemp:(Common::getImgDomain().$imgTempBig);
+                $map[] = ['img'=>$imgTemp,'big_img'=> $imgTempBig];
             }
 
             $data = [
@@ -137,11 +151,11 @@ class MovieDetailController extends BaseController
                     $data['want_see'] = 1;
                 }
             }
-            $map = [];
+            /*$map = [];
             foreach ((array)json_decode($movie->map, true) as $m) {
                 $map[] = $m == '' ? '' : Common::getImgDomain() . $m;
             }
-            $data['map'] = $map;
+            $data['map'] = $map;*/
             return $this->sendJson($data);
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
@@ -176,33 +190,73 @@ class MovieDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
-            $page = $request->input('page');
-            $pageSize = $request->input('pageSize');
-            $skip = $pageSize * ($page - 1);
+            $page = intval($request->input('page'));
+            $pageSize = intval($request->input('pageSize'));
+            $offset = $pageSize * ($page - 1);
 
-            $model = MovieComment::where([
-                'movie_comment.mid' => $request->input('id'),
-                'movie_comment.status' => 1])
-                ->where(['movie_comment.type' => 1, 'movie_comment.status' => 1])
-                ->orderBy('movie_comment.type')
-                ->orderBy('id', 'DESC')
-                ->leftJoin('user_client', 'user_client.id', '=', 'movie_comment.uid')
-                ->with('replys')
-                ->select('movie_comment.*',
-                    'user_client.nickname as user_client_nickname',
-                    'user_client.avatar as user_client_avatar');
+            //得到参数
+            $mid = intval($request->input('id'));
 
-            $sum = $model->count();
-            $comments = $model->skip($skip)
-                ->take($pageSize)
-                ->get();
+            //读取评论列表
+            $MC = new MovieComment();
+            $sum = $MC->getListCount($mid, 1, []);
 
+            $comments = $MC->getLists($mid, 1, [], $offset, $pageSize, 'id desc', 'id,mid,uid,comment,score,type,source_type,nickname,avatar,reply_uid,`like`,dislike,comment_time');
+
+            //遍历数据，获取需要子查询的数据
+            $uids = [];   //需要查询的用户id
+            $cids = [];   //需要查询的回复评论id
+            foreach($comments as $v){
+                $uids[] = $v->uid;
+                $cids[] = $v->id;
+            }
+
+            //读取回复的评论数据(系统只支持第一层，不支持无限递归)
+            $replyComments = Common::objectToArray($MC->getLists(0, 2, $cids, 0, 200, 'id asc', 'id,cid,uid,comment,score,type,source_type,nickname,avatar,reply_uid,`like`,dislike,comment_time'));
+            $replyArr = [];    //回复的列表
+            foreach($replyComments as $v){
+                $uids[] = $v['uid'];
+                $replyArr[$v['cid']][] = $v;
+            }
+
+            //读取用户
+            $MU = new UserClient();
+            $resUser = Common::objectToArray($MU->getListByids(array_unique($uids), 'id,nickname,avatar'));
+            $arrUser = [];    //用户数据
+            foreach($resUser as $v){
+                $arrUser[$v['id']] = $v;
+            }
+
+            //拼接最终数据
             $data = [];
-            foreach ($comments as $comment) {
-                $struct = MovieComment::struct($comment);
-                foreach ($comment->replys as $reply) {
-                    $struct['reply_comments'][] = MovieComment::struct($reply);
+            foreach($comments as $v){
+                
+                $nickname = isset($arrUser[$v->uid])?$arrUser[$v->uid]['nickname']:'';
+                $v->user_client_nickname = $nickname;   //昵称
+                $avatar = isset($arrUser[$v->uid])?$arrUser[$v->uid]['avatar']:'';
+                $v->user_client_avatar = $avatar;    //头像
+
+                //处理数据
+                $struct = MovieComment::struct($v);
+                $struct['is_like'] = CommentActionLogic::getUniqueAction('like',$v->id,$request->userData['uid']);
+                $struct['is_dislike'] = CommentActionLogic::getUniqueAction('dislike',$v->id,$request->userData['uid']);
+
+                //读取回复
+                if(isset($replyArr[$v->id])){
+                    foreach ($replyArr[$v->id] as $val) {
+                        $reply = (object)$val;
+                        $nickname = isset($arrUser[$reply->uid])?$arrUser[$reply->uid]['nickname']:'';
+                        $reply->user_client_nickname = $nickname;   //昵称
+                        $avatar = isset($arrUser[$reply->uid])?$arrUser[$reply->uid]['avatar']:'';
+                        $reply->user_client_avatar = $avatar;    //头像
+
+                        $action = [];
+                        $action['is_like'] = CommentActionLogic::getUniqueAction('like',$reply->id,$request->userData['uid']);
+                        $action['is_dislike'] = CommentActionLogic::getUniqueAction('dislike',$reply->id,$request->userData['uid']);
+                        $struct['reply_comments'][] = array_merge(MovieComment::struct($reply),$action);
+                    }
                 }
+                
                 $data[] = $struct;
             }
 
@@ -235,10 +289,43 @@ class MovieDetailController extends BaseController
                 throw new \Exception('无效用户token');
             }
 
+            $userInfoObj = new UserInfoLogic();
+            $userInfo = $userInfoObj->getUserInfo($uid,false);
+            if ($userInfo['status']>1){
+                $ext = '禁言';
+                $days = UserBlack::getBlackDay($uid,2);
+                $msg = "您的账户已被".$ext.$days."天，请在解禁后评论";
+
+                if($days>999)
+                {
+                    $msg = "您的账户已被永久".$ext;
+                }
+                return $this->sendError($msg);
+            }
+
+            //过滤词判断
+            $warning = '';
+            if(Filter::check($request->input('comment'))==true)
+            {
+                $warning = '你发送的内容有敏感信息，官方审核后方可显示';
+            }
+
+            //回复过滤，正在审核中的数据，不能被回复
+            if($request->input('comment_id'))
+            {
+                $cInfo = MovieComment::infoById($request->input('comment_id'));
+                if(isset($cInfo->audit) && $cInfo->audit!=1){
+                    $msg = "您回复的评论正在审核中，不能进行回复";
+                    return $this->sendError($msg);
+                }
+            }
+            
+
             $res = MovieComment::add(
                 $uid,
                 $request->input('id'),
                 $request->input('comment'),
+                0,
                 $request->input('comment_id'));
 
             if ($res == false) {
@@ -248,7 +335,7 @@ class MovieDetailController extends BaseController
                 'new_comment_time' => date('Y-m-d H:i:s'),
                 'comment_num' => DB::raw('comment_num+1')]);
 
-            return $this->sendJson([]);
+            return $this->sendJson([],200,'执行完成',$warning);
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
@@ -264,15 +351,20 @@ class MovieDetailController extends BaseController
             throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
         }
 
-        $movie = Mv::with('actors')->select('id')->first();
-        $actors = [];
-        foreach ($movie->actors as $a) {
-            $actors[] = $a->aid;
+        //查出所有演员
+        $actors = MovieActorAss::where('mid',$request->input('id')??0)->where('status',1)->get()->pluck('aid')->toArray();
+        if(!($actors && count($actors) >0 ))
+        {
+            return $this->sendJson([]);//没有数据
         }
-        $movie_ids = MovieActorAss::whereIn('aid', $actors)->pluck('mid')->all();
-        shuffle($movie_ids);
-        $movie_ids = array_slice($movie_ids, 0, min(count($movie_ids), 15));
 
+        $num = $request->input('num')??15;
+        $num = ($num <= 2)?2:$num;
+        $num = ($num >= 30)?30:$num;
+
+        $movie_ids = MovieActorAss::whereIn('aid', $actors)->where('mid','<>',$request->input('id')??0)->where('status',1)->pluck('mid')->all();//查询其他影片 并排除自己
+        shuffle($movie_ids);
+        $movie_ids = array_slice($movie_ids, 0, min(count($movie_ids), $num));//最多取15个
         $movies = Mv::whereIn('id', $movie_ids)->get();
         $data = [];
         foreach ($movies as $movie) {
@@ -297,7 +389,7 @@ class MovieDetailController extends BaseController
         }
         $movie_ids = MovieLabelAss::whereIn('cid', $labels)->pluck('mid')->all();
         shuffle($movie_ids);
-        $movie_ids = array_slice($movie_ids, 0, min(count($movie_ids), 2));
+        $movie_ids = array_slice($movie_ids, 0, min(count($movie_ids), 10));
 
         $movies = Mv::whereIn('id', $movie_ids)->get();
         $data = [];

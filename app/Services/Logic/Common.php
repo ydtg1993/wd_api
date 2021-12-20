@@ -289,6 +289,29 @@ class Common
     }
 
 
+    /**
+     * 网易云盾验证码
+     * @return bool
+     */
+    public static function wangyiVerify()
+    {
+        $validate = request('validate');
+        // 文档地址：http://support.dun.163.com/documents/15588062143475712?docId=69218161355051008
+        $CaptchaVerifier = new WangYiCaptcha(config('wangyicaptcha.captcha.CAPTCHA_ID'), config('wangyicaptcha.captcha.SECRET_ID'),
+            config('wangyicaptcha.captcha.SECRET_KEY'));
+        //通过则返回true
+        $validatePass = $CaptchaVerifier->verify($validate);
+        if (!$validatePass) {
+            return false;
+        }
+        return true;
+    }
 
-
+    /**
+     * 将laravel原生查询结果中的对象转化成数组
+     */
+    public static function objectToArray($object) {
+        //先编码成json字符串，再解码成数组
+        return json_decode(json_encode($object), true);
+    }
 }

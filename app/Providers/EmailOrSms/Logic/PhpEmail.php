@@ -56,8 +56,8 @@ class PhpEmail {
             //$this->mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $this->mail->SMTPSecure = $this->config['smtp_secure'];
             $this->mail->Port = $this->config['smtp_port'];
+            $this->mail->setFrom($this->config['smtp_from'], '黄豆瓣官方组');
 
-            $this->mail->setFrom('from@example.com', '黄豆瓣官方组');
         }catch ( \Exception $e){
             throw  new \Exception("email init error");
         }

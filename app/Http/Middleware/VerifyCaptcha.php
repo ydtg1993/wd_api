@@ -30,7 +30,7 @@ class VerifyCaptcha
             'msg' => '验证码错误',
             'data' => (object)[],
         ];
-        if(!Common::checkCaptcha()){
+        if(!Common::wangyiVerify()){
             return response()->json($error);
         }
         return $next($request);

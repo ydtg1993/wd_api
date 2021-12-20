@@ -20,7 +20,7 @@ class RegisterSmsMessage extends Message
     // 定义直接使用内容发送平台的内容
     public function getContent(GatewayInterface $gateway = null)
     {
-        return sprintf('注册验证码%s ', $this->sms->code);
+        return sprintf('【黄豆瓣】您本次的验证码%s，请及时输入！', $this->sms->code);
     }
 
     // 定义使用模板发送方式平台所需要的模板 ID

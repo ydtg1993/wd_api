@@ -38,6 +38,7 @@ class CategoryLogic extends HomeBaseLogic
         $page = $data['page']??1;
         $pageSize = $data['pageSize']??10;
         $cid = $data['cid']??0; // 1.
+
         $reData = RedisCache::getCacheData('movie','movie:category:list:',function () use ($data,$cid,$page,$pageSize)
         {
             $reData = ['list'=>[],'sum'=>0];
@@ -100,7 +101,7 @@ class CategoryLogic extends HomeBaseLogic
             }
 
             return $reData;
-        },['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize],$isCache);
+        },['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
 
         return $reData;
     }

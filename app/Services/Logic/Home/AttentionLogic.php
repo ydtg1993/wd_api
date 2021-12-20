@@ -37,7 +37,7 @@ class AttentionLogic extends HomeBaseLogic
         $uid = $arg['uid'] ??0;
         if($uid <= 0)
         {
-            $this->errorInfo->setCode(500,'未登录！');
+            $this->errorInfo->setCode(2000,'未登录！');
             return [];
         }
 
@@ -291,13 +291,17 @@ class AttentionLogic extends HomeBaseLogic
             return $reData;
         },['uid'=>$uid],true);
 
-        $page = $data['page']??1;
-        $pageSize = $data['pageSize']??10;
+        $page = $arg['page']??1;
+        $pageSize = $arg['pageSize']??10;
         $pageLen = (($page-1)*$pageSize);
         $midsInfo = [];
         for ($i = $pageLen;$i<($pageLen+$pageSize);$i++)
         {
-            $midsInfo[] = $reData[$i];
+            if(($reData[$i]??0)<= 0)
+            {
+                break;
+            }
+            $midsInfo[] = $reData[$i]??0;
         }
 
         //读取影片信息

@@ -18,7 +18,7 @@ class  AnnouncementLogic extends \App\Services\Logic\HandleLogic
             'count'=>0,
         ];
         $page = $condition['page'];
-        $pageSize = 1;
+        $pageSize = 20;
         $skip = $pageSize*($page-1);
         $baseQuery = Announcement::when($condition['type'],function ($query,$data) {
             return $query->where('type', '=', $data);

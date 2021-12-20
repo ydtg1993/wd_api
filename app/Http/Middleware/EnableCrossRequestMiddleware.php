@@ -23,11 +23,22 @@ class EnableCrossRequestMiddleware
      */
     public function handle($request, Closure $next, $guard = null)
     {
-        header('Access-Control-Allow-Origin: *');
-        header("Access-Control-Allow-Credentials: true");
-        header("Access-Control-Allow-Methods: *");
-        header("Access-Control-Allow-Headers: Content-Type,Access-Token");
-        header("Access-Control-Expose-Headers: *");
-        return $next($request);
+        /**
+         * 用于跨域调用
+         */
+        if($request->isMethod('OPTIONS')){
+            $response = response('',200);
+
+        }else{
+            $response = $next($request);
+        }
+
+        $response->header('Access-Control-Allow-Origin',"*");
+        $response->header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+        $response->header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookies, Token,token,content-type');
+        $response->header('Access-Control-Allow-Credentials', 'true');
+        $response->header('Cache-Control', 'no-store');
+
+        return $response;
     }
 }

@@ -66,7 +66,7 @@ class SearchLogic extends BaseLogic
             }
 
             return $reData;
-        },['page'=>$page,'pageSize'=>$pageSize,'search'=>md5($search)],true);
+        },['page'=>$page,'pageSize'=>$pageSize,'search'=>md5(json_encode($data))],true);
 
         //给用户添加搜索记录
         if($uid > 0)
@@ -77,9 +77,10 @@ class SearchLogic extends BaseLogic
                 $userSearchObj = new UserSearchLog();
                 $userSearchObj->uid = $uid;
                 $userSearchObj->content = $search;
+                $userSearchObj->status = 1;
                 $userSearchObj->save();
             }
-            UserSearchLog::where('content',$search)->where('uid',$uid)->update(['created_at'=>date('Y-m-d H:i:s',time())]);
+            UserSearchLog::where('content',$search)->where('uid',$uid)->update(['created_at'=>date('Y-m-d H:i:s',time()),'status'=>1]);
         }
 
         return $reData;
@@ -102,6 +103,7 @@ class SearchLogic extends BaseLogic
         {
             $reData = ['list'=>[],'sum'=>0];
             $movieSearch = UserSearchLog::where('uid',$uid)
+                ->where('status',1)
                 ->select('content')
                 ->distinct()
                 ->offset(($page - 1) * $pageSize)
@@ -117,4 +119,21 @@ class SearchLogic extends BaseLogic
         },['page'=>$page,'pageSize'=>$pageSize,'uid'=>$uid],true,$uid);
 
     }
+
+    /**
+     * 清楚搜索记录
+     * @param $data
+     * @return array
+     */
+    public function clearSearchLog($data)
+    {
+        $uid = $data['uid']??0;
+        if($uid <= 0)
+        {
+            return [];
+        }
+        UserSearchLog::where('uid',$uid)->update(['status'=>2]);
+        return [];
+    }
+
 }

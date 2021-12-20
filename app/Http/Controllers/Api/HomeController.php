@@ -10,6 +10,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\ActorPopularityChart;
 use App\Models\MovieLog;
+use App\Models\Movie;
 use App\Services\Logic\Home\HomeLogic;
 use App\Services\Logic\Search\SearchLogic;
 use Illuminate\Http\Request;
@@ -21,13 +22,25 @@ class HomeController extends BaseController
     {
         $data = $request->input();
         $data['uid'] = $request->userData['uid']??0;
-        $homeObj  = new HomeLogic();
-        $reData = $homeObj->getHomeData($data,$data['home_type']??1);
-        $errorInfo = $homeObj->getErrorInfo();
-        
-        return (($errorInfo->code??500) == 200)?
-            $this->sendJson($reData):
-            $this->sendError(($errorInfo->msg??'未知错误'),($errorInfo->code??500));
+
+        $reData=[];
+        if(isset($data['home_type']) && $data['home_type']==2)
+        {
+            $homeObj  = new HomeLogic();
+            $reData = $homeObj->getHomeData($data,$data['home_type']??1);
+        }else{
+
+            if($data['home_type']==4)
+            {
+                $data['flux_linkage_time'] = 2;
+                $data['day_limit'] = 1;
+            }
+
+            $movieDb = new Movie();
+            $reData = $movieDb->getMovieListByCache($data,true);
+        }
+
+        return $this->sendJson($reData);
     }
 
     /**
@@ -85,5 +98,19 @@ class HomeController extends BaseController
             $this->sendJson($reData):
             $this->sendError(($errorInfo->msg??'未知错误'),($errorInfo->code??500));
     }
+
+    public function searchLogClear(Request $request)
+    {
+        $data = $request->input();
+        $data['uid'] = $request->userData['uid']??0;
+        $searchLogicObj = new SearchLogic();
+        $reData = $searchLogicObj->clearSearchLog($data);
+        $errorInfo = $searchLogicObj->getErrorInfo();
+        return (($errorInfo->code??500) == 200)?
+            $this->sendJson($reData):
+            $this->sendError(($errorInfo->msg??'未知错误'),($errorInfo->code??500));
+    }
+
+
 
 }

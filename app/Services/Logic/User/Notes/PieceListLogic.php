@@ -42,7 +42,15 @@ class PieceListLogic extends  NotesBase
             return false;
         }
 
+        //判断片单查看权限，如果是公开的，需要变成审核中
+        $audit = 1;
+        if(isset($data['authority']) && $data['authority']==1)
+        {
+            $audit = 0;
+        }
+
         $plid = $data['plid']??1;
+        $pieceListStatus=1;
         if($type == 1)
         {
             if($status != 1)
@@ -57,6 +65,7 @@ class PieceListLogic extends  NotesBase
             $moviePieceListDb->status = 1;
             $moviePieceListDb->authority = 1;
             $moviePieceListDb->type = 1;
+            $moviePieceListDb->audit = 0;   //公开状态时，需要审核中
             $moviePieceListDb->save();
             $plid = $moviePieceListDb->id;
         }
@@ -72,6 +81,7 @@ class PieceListLogic extends  NotesBase
                 $moviePieceListDb->type = 1;
                 $moviePieceListDb->cover = $data['cover']??'';
                 $moviePieceListDb->intro = $data['intro']??'';
+                $moviePieceListDb->audit = $audit;   //审核
                 $moviePieceListDb->save();
                 $plid = $moviePieceListDb->id;
             }
@@ -91,12 +101,18 @@ class PieceListLogic extends  NotesBase
                         return false;
                     }
 
+                    if($moviePieceObj->movie_sum<10 && isset($data['authority']) && $data['authority']==1){
+                        $this->errorInfo->setCode(500,'公开片单数量必须大于等于10部影片');
+                        return false;
+                    }                   
+
                     MoviePieceList::where('id',$plid)->where('uid',$uid)->update([
                         'status' =>1,
                         'name' =>$name,
-                        'cover' =>$data['cover']??'',
+                        'cover' =>(($data['cover']??'') == '')?($moviePieceObj->cover??''):($data['cover']??''),
                         'intro' =>$data['intro']??'',
                         'authority' =>$data['authority']??1,
+                        'audit' => $audit,
                     ]);
                 }
                 else if($status == 2)
@@ -110,6 +126,8 @@ class PieceListLogic extends  NotesBase
 
                     MoviePieceList::where('id',$plid)->where('uid',$uid)->where('type','<>',3)->update(['status' =>2]);//只能删除自己的 [不能删除默认的]
                     UserPieceList::where('uid',$uid)->where('plid',$plid)->where('type','<>',1)->update(['status' =>2]);//删除用户部分表 [不能删除默认的]
+                    UserPieceList::where('plid',$plid)->where('type',3)->update(['status' =>2]);//取消其他用户收藏关联关系 []
+                    $pieceListStatus = 2;//这里也标记一下不然删除不彻底
                 }
                 else if($status == 4)
                 {
@@ -117,6 +135,28 @@ class PieceListLogic extends  NotesBase
                     if(($moviePieceObj->authority??2) == 2)
                     {
                         $this->errorInfo->setCode(500,'私有片单不能收藏！');
+                        return false;
+                    }
+                }
+                else if($status == 5)
+                {
+                    $status = 4;
+                    $pieceListStatus = 2;
+                    $moviePieceObj = MoviePieceList::find($plid);
+                    if(($moviePieceObj->id??0)== 0)
+                    {
+                        $this->errorInfo->setCode(500,'无效的片单！');
+                        return false;
+                    }
+                    if(($moviePieceObj->uid??0) == $uid)
+                    {
+                        $this->errorInfo->setCode(500,'不能取消收藏自己创建的片单！');
+                        return false;
+                    }
+
+                    if(($moviePieceObj->authority??2) == 2)
+                    {
+                        $this->errorInfo->setCode(500,'无效的取消对象/或者权限【该片单为私有片单】！');
                         return false;
                     }
                 }
@@ -128,7 +168,7 @@ class PieceListLogic extends  NotesBase
         {
             $userPieceListDb = new UserPieceList();
             $userPieceListDb->type = $status==4?3:2;
-            $userPieceListDb->status = 1;
+            $userPieceListDb->status = $pieceListStatus;
             $userPieceListDb->plid = $plid;
             $userPieceListDb->uid = $uid;
             $userPieceListDb->save();
@@ -136,13 +176,22 @@ class PieceListLogic extends  NotesBase
         else
         {
             UserPieceList::where('plid',$plid)->where('uid',$uid)->update([
-                'status' =>1
+                'status' =>$pieceListStatus
             ]);
         }
 
+        if($status)
+        {
+            //更新收藏数据
+            MoviePieceList::where('id',$plid)->update([
+                'like_sum' =>UserPieceList::where('plid',$plid)->where('type',3)->where('status',1)->count(),
+            ]);
+        }
+
+
         //刷新用户片单数据
         RedisCache::clearCacheManageAllKey('userPieceList',$uid);//清楚指定用户浏览的缓存
-        
+        RedisCache::clearCacheManageAllKey('userPieceList');//清楚片单缓存
         return true;
     }
 
@@ -332,16 +381,24 @@ class PieceListLogic extends  NotesBase
     public function createDefPieceList($uid)
     {
         $MoviePieceListData = MoviePieceList::where('type',3)->where('uid',$uid)->first();
+
+        $audit = 1;
+        if($MoviePieceListData['authority'] == 1)
+        {
+            $audit = 0;
+        }
+
         if(($MoviePieceListData['id']??0) <=0 )
         {
             $moviePieceListDb = new MoviePieceList();
             $moviePieceListDb->name = '系统默认片单';
             $moviePieceListDb->uid = $uid;
             $moviePieceListDb->status = 1;
-            $moviePieceListDb->authority = $data['authority']??1;
+            $moviePieceListDb->authority = $MoviePieceListData['authority']??1;
             $moviePieceListDb->type = 3;
-            $moviePieceListDb->cover = $data['cover']??'';
+            $moviePieceListDb->cover = $MoviePieceListData['cover']??'';
             $moviePieceListDb->intro = '系统默认片单';
+            $moviePieceListDb->audit = $audit;
             $moviePieceListDb->save();
             $plid = $moviePieceListDb->id;
 
@@ -368,7 +425,9 @@ class PieceListLogic extends  NotesBase
     {
         $reData = RedisCache::getCacheData('userPieceList','piece:user:first',function () use ($pid)
         {
-            $pieceList = MoviePieceList::where('id',$pid) ->where('status',1)
+            $pieceList = MoviePieceList::where('id',$pid)
+                ->where('status',1)
+                ->where('audit',1)
                 ->first();
             if (($pieceList['id']??0) <= 0)
             {
@@ -380,12 +439,15 @@ class PieceListLogic extends  NotesBase
                 $reData['uid'] = 0;
             }
             return $reData;
-
         },['pid'=>$pid],$isCache);
 
-        if(($reData['id'])<=0)
-        {
-            $this->errorInfo->setCode(500,'片单不存在或者已经被删除！!');
+        if(isset($reData['id'])){
+            if($reData['id']<=0){
+                $this->errorInfo->setCode(404,'该片单已下架，请观看其他内容!');
+                return [];
+            }
+        }else{
+            $this->errorInfo->setCode(404,'该片单已下架，请观看其他内容!');
             return [];
         }
 
@@ -418,19 +480,35 @@ class PieceListLogic extends  NotesBase
             $this->errorInfo->setCode(500,'无效的片单信息！');
             return [];
         }
+
+        $sort = $data['sort']??1;// 0 默认排序 1发布日期排序 2。评分
+        $sortType = $data['sortType']??'desc';// 排方式序 asc
+
+        if($sort != 0)
+        {
+            $sortType = in_array($sortType,['desc','asc'])?$sortType:'desc';
+        }
+
         $page = $data['page']??1;
         $pageSize = $data['pageSize']??10;
-        $reData = RedisCache::getCacheData('userPieceList','piece:user:movie:list:',function () use ($pid,$data,$page,$pageSize)
+        $reData = RedisCache::getCacheData('userPieceList','piece:user:movie:list:',function () use ($pid,$data,$page,$pageSize,$sort,$sortType)
         {
             $reData = ['list'=>[],'sum'=>0];
-            $dataList = PieceListMovie::where('plid',$pid)
-                ->where('status',1)
-                ->orderBy('created_at','desc')
-                ->offset(($page - 1) * $pageSize)
+            $dataPieceList = PieceListMovie::where('piece_list_movie.plid',$pid)
+                ->where('piece_list_movie.status',1)
+                ->leftJoin('movie', 'movie.id', '=', 'piece_list_movie.mid');
+
+            (($data['is_subtitle']??1) == 1)?null:($dataPieceList = $dataPieceList->where('movie.is_subtitle',2));
+            (($data['is_download']??1) == 1)?null:($dataPieceList = $dataPieceList->where('movie.is_download',2));
+            (($data['is_short_comment']??1) == 1)?null:($dataPieceList = $dataPieceList->where('movie.is_short_comment',2));
+
+            $reData['sum'] = $dataPieceList->count();
+            ($sort == 2)?($dataPieceList = $dataPieceList->orderBy('movie.score',$sortType)):($dataPieceList = $dataPieceList->orderBy('movie.release_time',$sortType));
+
+            $dataList = $dataPieceList->offset(($page - 1) * $pageSize)
                 ->limit($pageSize)
                 ->get();
-            $reData['sum'] = PieceListMovie::where('plid',$pid)
-                ->where('status',1)->count();
+
             $dataIDs = $dataList
                 ->pluck('mid')
                 ->toArray();
@@ -458,7 +536,7 @@ class PieceListLogic extends  NotesBase
             }
             return $reData;
 
-        },['plid'=>$pid,'page'=>$page,'pageSize'=>$pageSize],$isCache);
+        },['plid'=>$pid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
 
         return $reData;
     }
@@ -481,8 +559,9 @@ class PieceListLogic extends  NotesBase
             $pieceListDb = null;
             if($type == 2)
             {
-                $pieceListDb = MoviePieceList::where('type','<>',3)
+                $pieceListDb = MoviePieceList::where('type','<',3)
                     ->where('authority',1)
+                    ->where('audit',1)
                     ->where('status',1);
                 $reData['sum'] = $pieceListDb->count();
                 $pieceListDb = $pieceListDb->orderBy('pv_browse_sum','desc')
@@ -494,8 +573,9 @@ class PieceListLogic extends  NotesBase
             }
             else
             {
-                $pieceListDb = MoviePieceList::where('type','<>',3)
+                $pieceListDb = MoviePieceList::where('type','<',3)
                     ->where('authority',1)
+                    ->where('audit',1)
                     ->where('status',1);
                 $reData['sum'] = $pieceListDb->count();
                 $pieceListDb = $pieceListDb->orderBy('created_at','desc')
@@ -567,7 +647,7 @@ class PieceListLogic extends  NotesBase
         $moviePieceListInfo = MoviePieceList::where('id',$pid)->where('uid',$uid)->first();
         if(($moviePieceListInfo['id']??0)<=0)
         {
-            $this->errorInfo->setCode(500,'只有创建该片单的用户才能添加影片！');
+            $this->errorInfo->setCode(500,'非自己创建的片单不可编辑！');
             return [];
         }
 
@@ -581,9 +661,41 @@ class PieceListLogic extends  NotesBase
             $pieceListObj->save();
         }
 
+        $upWeight = false;
+        if(isset($pieceListInfo->status)){
+            //添加时，状态必须是删除
+            if($status==1 && $pieceListInfo->status==2)
+            {
+                $upWeight = true;
+            }
+            //删除时，状态必须是添加
+            if($status==2 && $pieceListInfo->status==1)
+            {
+                $upWeight = true;
+            }
+        }else{
+            $upWeight = true;
+        }
+
+        //更新加权分
+        if($upWeight == true)
+        {
+            //加权分，被加入一个片单，加1分；取消片单，减1分
+            if($status==1)
+            {
+                Movie::weightAdd($mid,1);
+            }else{
+                Movie::weightLose($mid,1);
+            }
+        }
+
         PieceListMovie::where('plid',$pid)->where('mid',$mid)->update([
             'status' =>$status,
         ]);
+        MoviePieceList::where('id',$pid)->where('uid',$uid)->update([
+            'movie_sum' =>PieceListMovie::where('plid',$pid)->where('status',1)->count(),
+        ]);
+
         RedisCache::clearCacheManageAllKey('userPieceList');//清楚浏览的缓存
         RedisCache::clearCacheManageAllKey('userPieceList',$uid);//清楚浏览的缓存
 

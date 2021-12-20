@@ -14,6 +14,8 @@ return [
     */
 
     'name' => env('APP_NAME', 'Laravel'),
+    'image_domain' => env('IMAGE_DOMAIN', ''),
+    'upload_piece_list_files'=>env('IMAGE_PIECE_LIST', ''),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,7 +69,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Shanghai',
 
     /*
     |--------------------------------------------------------------------------
@@ -176,7 +178,8 @@ return [
         App\Providers\RouteServiceProvider::class,
 
         App\Providers\EmailOrSms\EmailOrSmsServiceProvider::class,
-        Mews\Captcha\CaptchaServiceProvider::class,
+//        Mews\Captcha\CaptchaServiceProvider::class,
+       // Elasticquent\ElasticquentServiceProvider::class,
 
     ],
 

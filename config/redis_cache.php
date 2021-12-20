@@ -21,6 +21,7 @@ return [
 
     'userinfo'=>[
         'userinfo:first:'=>60,
+        'userinfo:search:log:'=>60,//影片搜索记录
     ],
 
     'userActionRecVie'=>[
@@ -58,12 +59,45 @@ return [
     'userLikeUser'=>[
         'like:fans:list:'=>60,//用户粉丝列表
         'like:attention:list:'=>60,//用户关注列表
+        'userinfo:first:attention'=>60,//用户单个关注信息
     ],
 
     'userPieceList'=>[
         'piece:user:list:c'=>60,//用户片单列表-创建
         'piece:user:list:l'=>60,//用户片单列表-收藏
+        'piece:user:first'=>60,//获取片单详情
+        'piece:user:movie:list:'=>60,//获取片单-影片列表
+        'piece:list:'=>60,//片单列表
     ],
+
+    'movie'=>[
+        'movie:popular:list:'=>60,//热门影片列表
+        'movie:category:list:'=>60,//类别影片列表
+        'movie:attention:mid:list:'=>60,//关注影片ID列表
+        'movie:attention:list:'=>60,//关注影片列表
+        'movie:search:list:'=>60,//搜索影片列表
+    ],
+
+    'actor'=>[
+        'movie:actor:list:'=>60,//演员列表
+    ],
+
+    'series'=>[
+        'movie:series:list:'=>60,//系列列表
+    ],
+
+    'filmCompanies'=>[
+        'movie:film:companies:list:'=>60,//片商列表
+        ],
+
+    'Rank'=>
+    [
+        'movie:rank:count:list:'=>60,//影片排行列表
+        'actor:rank:count:list:'=>60,//演员排行列表
+    ],
+
+
+
 
 
     'test'=>[

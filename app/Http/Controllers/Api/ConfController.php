@@ -46,7 +46,7 @@ class ConfController extends BaseController
 
         try {
             $validator = Validator()->make(['type'=>$type], [
-                'type' => 'required|int|min:1|max:6',
+                'type' => 'required|int|min:1|max:7',
             ]);
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);

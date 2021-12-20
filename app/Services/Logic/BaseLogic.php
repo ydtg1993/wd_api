@@ -17,7 +17,7 @@ class BaseLogic
     protected  $className = 'BaseLogic';
 
 
-    //ÀàÐÍÖ´ÐÐ
+    //ç±»åž‹æ‰§è¡Œ
     protected  $typeClass = array(
 
     );

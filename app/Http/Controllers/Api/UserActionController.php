@@ -33,8 +33,11 @@ class UserActionController extends BaseController
         if($type <= 0)
         {
             return $this->sendError('无效的动作类型！');
+        }elseif ($type == 3 && $data['status']!=2){
+            if(!Common::wangyiVerify()){
+                return $this->sendError('验证码错误');
+            }
         }
-
         $userAction = new NotesLogic();
         $reData = $userAction->addNotes($data,$type);
         if(($userAction->getErrorInfo()->code??500) != 200)
@@ -102,7 +105,7 @@ class UserActionController extends BaseController
         $reTempData = RedisCache::getCacheData('userLikeUser','userinfo:first:attention',function () use ($user_id,$uid)
         {
             $likeInfo = UserLikeUser::where('uid',$uid) ->where('status',1) ->where('goal_uid',$user_id)->first();
-            return ($likeInfo['id']??0 <= 0)?null:1;
+            return (($likeInfo['id']??0) <= 0)?null:1;
         },['uid'=>$uid,'goal_uid'=>$user_id],true,$uid);
 
         $reData = UserInfoLogic::userDisData($userInfo);
@@ -129,6 +132,7 @@ class UserActionController extends BaseController
         }
 
         $data['uid'] = $user_id;
+        $data['thisUid'] = $request->userData['uid']??0;
         $userAction = new NotesLogic();
         $reData = $userAction->getNotesList($data,$type);
         if(($userAction->getErrorInfo()->code??500) != 200)

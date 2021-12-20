@@ -17,12 +17,12 @@ class EmailConfig{
 
         return [
             'smtp_gmail'=>[
-                'smtp_host'=>'smtp.gmail.com',
+                'smtp_host'=>'smtp.aol.com',
                 'smtp_port'=>587,
                 'smtp_secure'=>PHPMailer::ENCRYPTION_STARTTLS,
-                'smtp_username'=>'lhysdasky@gmail.com',
-                'smtp_password'=>'rkxurivdcyahbvwv',
-                'smtp_from'=>'lhysdasky#@gmail.com',
+                'smtp_username'=>'huangdouban@aol.com',
+                'smtp_password'=>'javdgimatttzkdku',
+                'smtp_from'=>'huangdouban@aol.com',
                 'debug'=>SMTP::DEBUG_OFF,//
             ]
         ];

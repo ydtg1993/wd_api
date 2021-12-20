@@ -19,6 +19,7 @@ class ActorPopularityChart extends Model
 
         $reData = RedisCache::getCacheData('Rank','actor:rank:count:list:',function () use ($data,$page,$pageSize,$type,$time)
         {
+            $time = $time+(60*60*24);//加一天时间戳防止时区影响
             $reData = ['list'=>[],'sum'=>0];
             $log = new ActorPopularityChart();
             $type>0?($log = $log->where('cid',$type)):null;
@@ -64,7 +65,7 @@ class ActorPopularityChart extends Model
             }
 
             return $reData;
-        },['page'=>$page,'pageSize'=>$pageSize,'type'=>$type],true);
+        },['page'=>$page,'pageSize'=>$pageSize,'type'=>$type,'time'=>$time],true);
 
         return (is_array($reData) || count($reData) >0 )? $reData:[];
     }

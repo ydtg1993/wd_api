@@ -48,11 +48,12 @@ class BaseController extends Controller
      * @param string $msg
      * @return \Illuminate\Http\JsonResponse
      */
-    protected function sendJson($data,$code = 200,$msg = '')
+    protected function sendJson($data,$code = 200,$msg = '',$warning='')
     {
         $reData  = [
             'code' => $code,
             'msg' => $msg == ''?(isset(BaseError::$msgCode[$code])?BaseError::$msgCode[$code]:'未知错误'):$msg,
+            'warning'=>$warning,
             'data' =>  is_string($data)?$data:(object)$data
         ];
         //数据返回

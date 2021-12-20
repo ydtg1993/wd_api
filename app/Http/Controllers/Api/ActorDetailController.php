@@ -34,6 +34,7 @@ class ActorDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
+            //这里后期有空加缓存
             $actor = MovieActor::where('id', $request->input('id'))->with('names')->first();
             $names = [];
             foreach ($actor->names as $name) {
@@ -43,6 +44,12 @@ class ActorDetailController extends BaseController
             $data = MovieActor::formatList($actor);
             $data['names'] = $names;
             $data['is_like'] = 0;
+            $sum = MovieActorAss::where('aid',$data['id']??0 )->where('status', 1)->count();
+            if($sum != ($data['movie_sum']??0))
+            {
+                MovieActor::where('id',$data['id']??0 )->update(['movie_sum'=>$sum]);//修正演员影片数量
+                $data['movie_sum'] = $sum;
+            }
 
             $uid = $request->userData['uid']??0;
             if($uid>0 &&

@@ -1,15 +1,11 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: night
- * Date: 2021/6/21
- * Time: 9:45
- */
 
 namespace App\Models;
 
 use App\Services\Logic\RedisCache;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+
 class MovieScoreNotes extends Model
 {
     protected $table = 'movie_score_notes';
@@ -20,8 +16,10 @@ class MovieScoreNotes extends Model
      */
     public static function add($mid,$uid,$score)
     {
+        //删除之前的评分
         MovieScoreNotes::where('mid',$mid)->where('uid',$uid)->update(['status'=>2]);
 
+        //重写一条评分
         $dataObj = new MovieScoreNotes();
         $dataObj->mid = $mid;
         $dataObj->uid = $uid;
@@ -29,6 +27,66 @@ class MovieScoreNotes extends Model
         $dataObj->status = 1;
         $dataObj->save();
 
+        //计算平均分
+        $mdb = new MovieScoreNotes();
+        $mdb->avg($mid);
+        
+        return $dataObj->id;
+    }
+
+    /**
+     * 新增评分 
+     */
+    public function addNew($mid,$uid,$score)
+    {
+        //写一条评分
+        $dataObj = new MovieScoreNotes();
+        $dataObj->mid = $mid;
+        $dataObj->uid = $uid;
+        $dataObj->score = $score;
+        $dataObj->status = 1;
+        $dataObj->save();
+
+        //计算平均分
+        $mdb = new MovieScoreNotes();
+        $mdb->avg($mid);
+        
+        return $dataObj->id;
+    }
+
+    /**
+     * 读取数据 
+     */
+    public function info($uid=0, $mid=0)
+    {
+        $query = DB::table($this->table);
+        $info = $query->where('mid',$mid)->where('uid',$uid)->where('status',1)->first();
+        return $info;
+    }
+
+    /**
+     * 修改评分 
+     */
+    public function edit($mid,$uid,$score)
+    {
+        MovieScoreNotes::where('mid',$mid)->where('uid',$uid)->where('status',1)->update(['score'=>$score]);
+        $this->avg($mid);
+    }
+
+    /**
+     * 删除积分 
+     */
+    public function rm($mid,$uid)
+    {
+         MovieScoreNotes::where('mid',$mid)->where('uid',$uid)->where('status',1)->update(['status'=>2]);
+        $this->avg($mid);
+    }
+
+    /**
+     * 计算平均分 
+     */
+    public function avg($mid = 0)
+    {
         //读取影片频评分信息
         $movieInfo = Movie::where('id',$mid)->first();
         if(($movieInfo['id']??0)>0)
@@ -36,21 +94,21 @@ class MovieScoreNotes extends Model
             $collection_score = $movieInfo['collection_score']??0;
             $collection_score_people = $movieInfo['collection_score_people']??0;
 
-            $people = MovieScoreNotes::where('mid',$mid)->where('status',1)->count();
-            $score = MovieScoreNotes::where('mid',$mid)->where('status',1)->sum('score');
+            $people = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->count();
+            $score = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->sum('score');
 
+            //计算平均分
             if(($collection_score_people + $people) > 0)
             {
-                $score = ($collection_score + $score)/($collection_score_people + $people);
+                $score = (($collection_score * $collection_score_people) + $score)/($collection_score_people + $people);
             }
             else
             {
                 $score = 5;
             }
-            Movie::where('id',$mid)->update(['score'=>$score]);
+            Movie::where('id',$mid)->update(['score'=>$score,'score_people'=>$collection_score_people+$people]);
         }
 
         RedisCache::clearCacheManageAllKey('movie');
-        return $dataObj->id;
-    }
+    } 
 }

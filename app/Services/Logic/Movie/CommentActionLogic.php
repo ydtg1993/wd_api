@@ -16,11 +16,13 @@ use App\Events\UserEvent\UserReplyEvent;
 use App\Events\UserEvent\UserReportEvent;
 use App\Models\MovieComment;
 use App\Services\Logic\BaseLogic;
+use App\Services\Logic\Common;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Redis;
 
 class CommentActionLogic extends BaseLogic
 {
-    const PREFIX_COMMENT_ACTION='movie_comment:action:';
+        const PREFIX_COMMENT_ACTION='movie_comment:action:';
 
     /**
      * 赞 踩
@@ -28,7 +30,7 @@ class CommentActionLogic extends BaseLogic
      * @return array|bool|null
      */
     public static function  userAction( $data ){
-        $isAction = static::checkUniqueAction($data['action'],$data['id'],$data['owner_id']);
+        $isAction = static::checkUniqueAction($data['action'],$data['id'],$data['uid']);
         if($isAction){
             return -1;
         }
@@ -40,7 +42,8 @@ class CommentActionLogic extends BaseLogic
         $event = [
             'sender_id'=>$data['uid'],
             'sender_name'=>$data['nickname'],
-            'sender_avatar'=>$data['avatar']??config('filesystems.avatar_path'),
+            'sender_avatar'=>(strval(substr($data['avatar']
+                    ,strlen(Common::getImgDomain()))))??'',
             'target_id'=>$data['target_id'],
             'uid'=>$data['owner_id'],
         ];
@@ -118,5 +121,23 @@ class CommentActionLogic extends BaseLogic
         }
         $redis->setbit($cacheKey,$uid,1);
         return false;
+    }
+
+
+    /**
+     * 获取动作的校验
+     * @param string $action
+     * @param $id
+     * @param $uid
+     * @return bool
+     */
+    public static function getUniqueAction($action , $id, $uid){
+        $redis = Redis::connection();
+        $cacheKey = self::PREFIX_COMMENT_ACTION.$action.$id;
+        $isAction = $redis->getbit($cacheKey,$uid);
+        if($isAction){
+            return 1;
+        }
+        return 0;
     }
 }

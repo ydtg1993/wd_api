@@ -35,11 +35,11 @@ class RecentlyViewedLogic extends NotesBase
         }
 
         /*如果列表不允许出现重复*/
-        /*$userBrowseInfo = UserBrowseMovie::where('uid',$uid)->where('status',1)->where('mid',$mid)->first();
+        $userBrowseInfo = UserBrowseMovie::where('uid',$uid)->where('status',1)->where('mid',$mid)->first();
         if(($userBrowseInfo['id']??0)>0)
         {
             UserBrowseMovie::where('uid',$uid)->where('mid',$mid)->update(['status' =>3]);
-        }*/
+        }
 
        $userBrowse = new  UserBrowseMovie();
        $userBrowse->uid = $uid;

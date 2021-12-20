@@ -11,6 +11,7 @@ namespace App\Http\Middleware;
 use App\Services\Logic\Common;
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use App\Models\UserBlack;
 
 class TokenMiddleware
 {
@@ -35,6 +36,15 @@ class TokenMiddleware
             $reData['msg'] = 'token error';
             return response()->json($error,200);
         }
+
+        //判断拉黑的用户不能登陆
+        $blackDay = UserBlack::getBlackDay($tokenData['UserBase']['uid'],3);        
+        if($blackDay>=1)
+        {
+            $reData['msg'] = 'token error';
+            return response()->json($error,200);
+        }
+
         $request->tokenData = $tokenData;
         $request->userData = [
             'uid'=>$tokenData['UserBase']['uid'],
