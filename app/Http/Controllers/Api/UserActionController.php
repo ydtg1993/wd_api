@@ -175,22 +175,22 @@ class UserActionController extends BaseController
         if($score < 1 || $score > 10){
             return $this->sendError('无效的动作类型！');
         }
-        if (MovieScoreNotes::where('uid', $uid)->where('mid', $mid)->exists()) {
-            return $this->sendError('已经评过分！');
-        }
         try {
-            MovieScoreNotes::insert([
-                'mid' => $mid,
-                'score' => $score,
-                'uid' => $uid
-            ]);
-            $scoreNotes = MovieScoreNotes::where('mid', $mid)->get();
-            $scoreNotes = $scoreNotes ? $scoreNotes->toArray() : [];
-            $score_people = count($scoreNotes);
-            $total = 0;
-            foreach ($scoreNotes as $scoreNote) {
-                $total += $scoreNote->score;
+            $scoreNoteRecord = MovieScoreNotes::where('uid', $uid)->where('mid', $mid)->first();
+            if($scoreNoteRecord){
+                MovieScoreNotes::where('id',$scoreNoteRecord->id)->update([
+                    'score' => $score
+                ]);
+            }else {
+                MovieScoreNotes::insert([
+                    'mid' => $mid,
+                    'score' => $score,
+                    'uid' => $uid
+                ]);
             }
+            $scoreNotes = MovieScoreNotes::where('mid', $mid)->pluck('score')->all();
+            $score_people = count($scoreNotes);
+            $total = array_sum($scoreNotes);
             $score = (int)ceil($total / $score_people);
             Movie::where('id', $mid)->update(['score' => $score, 'score_people' => $score_people]);
         }catch (\Exception $e){
