@@ -9,15 +9,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Movie;
+use App\Models\MovieComment;
 use App\Models\MovieLog;
 use App\Models\MovieScoreNotes;
 use App\Models\UserLikeUser;
+use App\Models\UserSeenMovie;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use App\Services\Logic\User\Notes\NotesLogic;
 use App\Services\Logic\User\UserInfoLogic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 
 class UserActionController extends BaseController
 {
@@ -176,6 +179,7 @@ class UserActionController extends BaseController
             return $this->sendError('无效的动作类型！');
         }
         try {
+            DB::beginTransaction();
             $scoreNoteRecord = MovieScoreNotes::where('uid', $uid)->where('mid', $mid)->first();
             if($scoreNoteRecord){
                 MovieScoreNotes::where('id',$scoreNoteRecord->id)->update([
@@ -193,9 +197,16 @@ class UserActionController extends BaseController
             $total = array_sum($scoreNotes);
             $score = (int)ceil($total / $score_people);
             Movie::where('id', $mid)->update(['score' => $score, 'score_people' => $score_people]);
+            MovieComment::where('mid',$mid)->where('uid',$uid)
+                ->where('status',1)
+                ->where('cid',0)
+                ->update(['score'=>$score]);
+            UserSeenMovie::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->update(['score'=>$score]);
         }catch (\Exception $e){
+            DB::rollBack();
             return $this->sendError('数据处理异常');
         }
+        DB::commit();
         return $this->sendJson(['score'=>$score]);
     }
 }

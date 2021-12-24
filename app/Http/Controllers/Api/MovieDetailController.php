@@ -168,7 +168,7 @@ class MovieDetailController extends BaseController
     {
         $uid = $request->userData['uid']??0;
         $mid = $request->input('mid');
-        $scoreNote = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid])->first();
+        $scoreNote = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->orderBy('id',"DESC")->first();
         $score = 0;
         if($scoreNote){
             $score = $scoreNote->score;
