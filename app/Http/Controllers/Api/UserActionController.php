@@ -180,7 +180,7 @@ class UserActionController extends BaseController
         }
         try {
             DB::beginTransaction();
-            $scoreNoteRecord = MovieScoreNotes::where('uid', $uid)->where('mid', $mid)->first();
+            $scoreNoteRecord = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->first();
             if($scoreNoteRecord){
                 MovieScoreNotes::where('id',$scoreNoteRecord->id)->update([
                     'score' => $score
