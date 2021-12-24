@@ -117,12 +117,6 @@ class MovieDetailController extends BaseController
                 $map[] = ['img'=>$imgTemp,'big_img'=> $imgTempBig];
             }
 
-            $scoreNote = MovieScoreNotes::where(['mid'=>$movie->id,'uid'=>$uid])->first();
-            $score = $movie->score;
-            if($scoreNote){
-                $score = $scoreNote->score;
-            }
-
             $data = [
                 "id" => $movie->id,
                 "number" => $movie->number,
@@ -133,7 +127,7 @@ class MovieDetailController extends BaseController
                 "big_cove" => $movie->big_cove == '' ? '' : (Common::getImgDomain() . $movie->big_cove),
                 "trailer" => $movie->trailer == '' ? '' : (Common::getImgDomain() . $movie->trailer),
                 "map" => $map,
-                "score" => $score,
+                "score" => $movie->score,
                 "score_people" => $movie->score_people,
                 "comment_num" => $movie->comment_num,
                 "flux_linkage_num" => $movie->flux_linkage_num,
@@ -168,6 +162,18 @@ class MovieDetailController extends BaseController
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
         }
+    }
+
+    public function myScore(Request $request)
+    {
+        $uid = $request->userData['uid']??0;
+        $mid = $request->input('mid');
+        $scoreNote = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid])->first();
+        $score = 0;
+        if($scoreNote){
+            $score = $scoreNote->score;
+        }
+        return $this->sendJson(['score'=>$score]);
     }
 
     private function is_like($model,&$data,$uid,$column)

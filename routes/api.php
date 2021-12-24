@@ -114,6 +114,7 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], f
     Route::any('movie/guess', 'MovieDetailController@guess');
     Route::any('movie/comment', 'MovieDetailController@comment');
     Route::any('movie/reply', 'MovieDetailController@reply')->middleware('verify_captcha');
+    Route::any('movie/my_score', 'MovieDetailController@myScore');
 });
 Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
     Route::any('actor/detail', 'ActorDetailController@index');
