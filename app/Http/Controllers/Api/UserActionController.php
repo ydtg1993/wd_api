@@ -196,6 +196,6 @@ class UserActionController extends BaseController
         }catch (\Exception $e){
             return $this->sendError('数据处理异常');
         }
-        return $this->sendJson(['score' => $score]);
+        return $this->sendJson(['score'=>$score]);
     }
 }

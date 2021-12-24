@@ -9,6 +9,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\ComplaintRequest;
+use App\Models\MovieScoreNotes;
 use App\Models\UserClient;
 use App\Models\UserBlack;
 use App\Models\MovieActor;
@@ -116,6 +117,12 @@ class MovieDetailController extends BaseController
                 $map[] = ['img'=>$imgTemp,'big_img'=> $imgTempBig];
             }
 
+            $scoreNote = MovieScoreNotes::where(['mid'=>$movie->id,'uid'=>$uid])->first();
+            $score = $movie->score;
+            if($scoreNote){
+                $score = $scoreNote->score;
+            }
+
             $data = [
                 "id" => $movie->id,
                 "number" => $movie->number,
@@ -126,7 +133,7 @@ class MovieDetailController extends BaseController
                 "big_cove" => $movie->big_cove == '' ? '' : (Common::getImgDomain() . $movie->big_cove),
                 "trailer" => $movie->trailer == '' ? '' : (Common::getImgDomain() . $movie->trailer),
                 "map" => $map,
-                "score" => $movie->score,
+                "score" => $score,
                 "score_people" => $movie->score_people,
                 "comment_num" => $movie->comment_num,
                 "flux_linkage_num" => $movie->flux_linkage_num,
@@ -230,7 +237,7 @@ class MovieDetailController extends BaseController
             //拼接最终数据
             $data = [];
             foreach($comments as $v){
-                
+
                 $nickname = isset($arrUser[$v->uid])?$arrUser[$v->uid]['nickname']:'';
                 $v->user_client_nickname = $nickname;   //昵称
                 $avatar = isset($arrUser[$v->uid])?$arrUser[$v->uid]['avatar']:'';
@@ -256,7 +263,7 @@ class MovieDetailController extends BaseController
                         $struct['reply_comments'][] = array_merge(MovieComment::struct($reply),$action);
                     }
                 }
-                
+
                 $data[] = $struct;
             }
 
@@ -319,7 +326,7 @@ class MovieDetailController extends BaseController
                     return $this->sendError($msg);
                 }
             }
-            
+
 
             $res = MovieComment::add(
                 $uid,
