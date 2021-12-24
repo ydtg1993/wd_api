@@ -8,7 +8,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Movie;
 use App\Models\MovieLog;
+use App\Models\MovieScoreNotes;
 use App\Models\UserLikeUser;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
@@ -28,24 +30,22 @@ class UserActionController extends BaseController
     public function add(Request $request)
     {
         $data = $request->all();
-        $type = $data['action_type']??0;
-        $data['uid'] = $request->userData['uid']??0;
-        if($type <= 0)
-        {
+        $type = $data['action_type'] ?? 0;
+        $data['uid'] = $request->userData['uid'] ?? 0;
+        if ($type <= 0) {
             return $this->sendError('无效的动作类型！');
-        }elseif ($type == 3 && $data['status']!=2){
-            if(!Common::wangyiVerify()){
+        } elseif ($type == 3 && $data['status'] != 2) {
+            if (!Common::wangyiVerify()) {
                 return $this->sendError('验证码错误');
             }
         }
         $userAction = new NotesLogic();
-        $reData = $userAction->addNotes($data,$type);
-        if(($userAction->getErrorInfo()->code??500) != 200)
-        {
-            return $this->sendError($userAction->getErrorInfo()->msg??'未知错误!',$userAction->getErrorInfo()->code??500);
+        $reData = $userAction->addNotes($data, $type);
+        if (($userAction->getErrorInfo()->code ?? 500) != 200) {
+            return $this->sendError($userAction->getErrorInfo()->msg ?? '未知错误!', $userAction->getErrorInfo()->code ?? 500);
         }
 
-        return $this->sendJson(['data'=>$reData]);
+        return $this->sendJson(['data' => $reData]);
     }
 
     /**
@@ -55,18 +55,16 @@ class UserActionController extends BaseController
     public function getList(Request $request)
     {
         $data = $request->all();
-        $type = $data['action_type']??0;
-        if($type <= 0)
-        {
+        $type = $data['action_type'] ?? 0;
+        if ($type <= 0) {
             return $this->sendError('无效的动作类型！');
         }
 
-        $data['uid'] = $request->userData['uid']??0;
+        $data['uid'] = $request->userData['uid'] ?? 0;
         $userAction = new NotesLogic();
-        $reData = $userAction->getNotesList($data,$type);
-        if(($userAction->getErrorInfo()->code??500) != 200)
-        {
-            return $this->sendError($userAction->getErrorInfo()->msg??'未知错误!',$userAction->getErrorInfo()->code??500);
+        $reData = $userAction->getNotesList($data, $type);
+        if (($userAction->getErrorInfo()->code ?? 500) != 200) {
+            return $this->sendError($userAction->getErrorInfo()->msg ?? '未知错误!', $userAction->getErrorInfo()->code ?? 500);
         }
 
         return $this->sendJson($reData);
@@ -79,40 +77,36 @@ class UserActionController extends BaseController
      */
     public function getHomeUser(Request $request)
     {
-        $template = ['user_id'=>0];
+        $template = ['user_id' => 0];
         $data = $request->all();
-        if(!$this->haveToParam($template,$data))
-        {
-            return $this->sendJson('',202);
+        if (!$this->haveToParam($template, $data)) {
+            return $this->sendJson('', 202);
         }
-        $data = $this->paramFilter($template,$data);
-        if($data  === false)
-        {
-            return $this->sendJson('',201);
+        $data = $this->paramFilter($template, $data);
+        if ($data === false) {
+            return $this->sendJson('', 201);
         }
 
-        $uid = $request->userData['uid']??0;
-        $user_id = $data['user_id']??0;
+        $uid = $request->userData['uid'] ?? 0;
+        $user_id = $data['user_id'] ?? 0;
         $userInfoObj = new UserInfoLogic();
         $userInfo = $userInfoObj->getUserInfo($user_id);
-        $user_id = ($userInfo['id']??0);
-        if($user_id<= 0)
-        {
+        $user_id = ($userInfo['id'] ?? 0);
+        if ($user_id <= 0) {
             return $this->sendError('无效的用户！');
         }
 
         $reData = [];
-        $reTempData = RedisCache::getCacheData('userLikeUser','userinfo:first:attention',function () use ($user_id,$uid)
-        {
-            $likeInfo = UserLikeUser::where('uid',$uid) ->where('status',1) ->where('goal_uid',$user_id)->first();
-            return (($likeInfo['id']??0) <= 0)?null:1;
-        },['uid'=>$uid,'goal_uid'=>$user_id],true,$uid);
+        $reTempData = RedisCache::getCacheData('userLikeUser', 'userinfo:first:attention', function () use ($user_id, $uid) {
+            $likeInfo = UserLikeUser::where('uid', $uid)->where('status', 1)->where('goal_uid', $user_id)->first();
+            return (($likeInfo['id'] ?? 0) <= 0) ? null : 1;
+        }, ['uid' => $uid, 'goal_uid' => $user_id], true, $uid);
 
         $reData = UserInfoLogic::userDisData($userInfo);
         $reData['user_id'] = $user_id;
-        $reData['user_attention'] = $reTempData== 1 ?1:2;
+        $reData['user_attention'] = $reTempData == 1 ? 1 : 2;
 
-        return $this->sendJson(['userInfo'=>$reData]);
+        return $this->sendJson(['userInfo' => $reData]);
 
     }
 
@@ -124,20 +118,18 @@ class UserActionController extends BaseController
     public function getHomeUserAction(Request $request)
     {
         $data = $request->all();
-        $type = $data['action_type']??0;
-        $user_id = $data['user_id']??0;
-        if($type <= 0)
-        {
+        $type = $data['action_type'] ?? 0;
+        $user_id = $data['user_id'] ?? 0;
+        if ($type <= 0) {
             return $this->sendError('无效的动作类型！');
         }
 
         $data['uid'] = $user_id;
-        $data['thisUid'] = $request->userData['uid']??0;
+        $data['thisUid'] = $request->userData['uid'] ?? 0;
         $userAction = new NotesLogic();
-        $reData = $userAction->getNotesList($data,$type);
-        if(($userAction->getErrorInfo()->code??500) != 200)
-        {
-            return $this->sendError($userAction->getErrorInfo()->msg??'未知错误!',$userAction->getErrorInfo()->code??500);
+        $reData = $userAction->getNotesList($data, $type);
+        if (($userAction->getErrorInfo()->code ?? 500) != 200) {
+            return $this->sendError($userAction->getErrorInfo()->msg ?? '未知错误!', $userAction->getErrorInfo()->code ?? 500);
         }
 
         return $this->sendJson($reData);
@@ -151,8 +143,8 @@ class UserActionController extends BaseController
     public function addCountMovie(Request $request)
     {
         $data = $request->all();
-        $mid = $data['mid']??0;
-        return $this->sendJson(['id'=>MovieLog::addMovieBrowse($mid)]);
+        $mid = $data['mid'] ?? 0;
+        return $this->sendJson(['id' => MovieLog::addMovieBrowse($mid)]);
     }
 
     /**
@@ -163,7 +155,47 @@ class UserActionController extends BaseController
     public function addCountActor(Request $request)
     {
         $data = $request->all();
-        $aid = $data['aid']??0;
-        return $this->sendJson(['id'=>MovieLog::addMovieBrowse($aid)]);
+        $aid = $data['aid'] ?? 0;
+        return $this->sendJson(['id' => MovieLog::addMovieBrowse($aid)]);
+    }
+
+    /**
+     * 评分
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function giveScore(Request $request)
+    {
+        $uid = $request->userData['uid'] ?? 0;
+        $mid = $request->input('mid');
+        $score = $request->input('score');
+        if ($uid <= 0) {
+            return $this->sendError('无效的动作类型！');
+        }
+        if($score < 1 || $score > 10){
+            return $this->sendError('无效的动作类型！');
+        }
+        if (MovieScoreNotes::where('uid', $uid)->where('mid', $mid)->exists()) {
+            return $this->sendError('已经评过分！');
+        }
+        try {
+            MovieScoreNotes::insert([
+                'mid' => $mid,
+                'score' => $score,
+                'uid' => $uid
+            ]);
+            $scoreNotes = MovieScoreNotes::where('mid', $mid)->get();
+            $scoreNotes = $scoreNotes ? $scoreNotes->toArray() : [];
+            $score_people = count($scoreNotes);
+            $total = 0;
+            foreach ($scoreNotes as $scoreNote) {
+                $total += $scoreNote->score;
+            }
+            $score = (int)ceil($total / $score_people);
+            Movie::where('id', $mid)->update(['score' => $score, 'score_people' => $score_people]);
+        }catch (\Exception $e){
+            return $this->sendError('数据处理异常');
+        }
+        return $this->sendJson(['score' => $score]);
     }
 }

@@ -30,6 +30,7 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin','token']], fu
     Route::any('user/add/action', 'UserActionController@add');//添加用户动作 各种收藏 记录 关注等
     Route::any('user/get/action/list', 'UserActionController@getList');//获取用户动作列表 各种收藏 记录 关注等
     Route::any('user/piece/list/add/movie', 'PieceListController@addMovie');//给片单添加或者移除一个影片
+    Route::any('user/give_score', 'UserActionController@giveScore');
 
     //想看
     Route::any('user/wantsee/add', 'WantseeController@add');  //想看添加
