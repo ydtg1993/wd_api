@@ -6,6 +6,7 @@ use App\Services\Logic\RedisCache;
 use App\Services\Logic\Common;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Models\MovieLabel;
 
 class Movie extends Model
 {
@@ -15,7 +16,7 @@ class Movie extends Model
 
     /**
      * 
-     * 读取数据通过缓存 
+     * 读取数据通过分类-使用缓存 
      */
     public function getMovieListByCache($data,$isCache)
     {
@@ -23,18 +24,21 @@ class Movie extends Model
         $pageSize = $data['pageSize']??10;
         $cid = $data['cid']??0;
 
-        $reData = self::getMovieList($data);
-
         $reData = RedisCache::getCacheDataOnly('movie','movie:category:list:',['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
         if(!$reData){
-            $reData = self::getMovieList($data);
+            //标签走另外的函数
+            if($data['home_type']==5){
+                $reData = self::getMovieListBylabel($data);
+            }else{
+                $reData = self::getMovieList($data);
+            }
             RedisCache::setCacheDataOnly('movie','movie:category:list:',$reData,['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
         }
         return $reData;
     }
 
     /**
-     * 读取影片列表 
+     * 读取影片列表通过分类 
      */
     public static function getMovieList($data)
     {
@@ -97,6 +101,81 @@ class Movie extends Model
                 order by '.$orderby.' limit '.$offset.','.$limit.';');
         $count = DB::select('select count(0) as nums
                 from movie 
+                where '.$where.';');
+
+        //加工数据
+        $rows = Common::objectToArray($rows);
+        foreach($rows as $v)
+        {
+            $res[] = Movie::formatList($v);
+        }
+
+        $reData['list'] = $res;
+        $reData['sum'] = $count[0]->nums; 
+
+        return $reData;
+    }
+
+
+    /**
+     * 读取影片列表通过标签
+     */
+    public static function getMovieListBylabel($data)
+    {
+        $page = $data['page']??1;
+        $pageSize = $data['pageSize']??10;
+        $lid = $data['cid']??0;
+
+        //判断搜索条件
+        $where = ' M.status =1 and M.is_up=1 ';
+        if($lid>0) {
+            //读取一次标签，如果是父标签
+            $children = MovieLabel::select('id')->where('cid',$lid)->get();
+            if($children)
+            {
+                $tmpIds = [$lid];
+                foreach($children as $v)
+                {
+                    $tmpIds[] = $v->id;
+                }
+                $lid = join(',',$tmpIds);
+            }
+
+            $where = 'L.cid in ('.$lid.') and '.$where;
+        }
+        if(isset($data['is_subtitle']) && $data['is_subtitle']){  
+            $where = 'M.is_subtitle = '.$data['is_subtitle'].' and '.$where;
+        }
+        if(isset($data['is_download']) && $data['is_download']){
+            $where = 'M.is_download = '.$data['is_download'].' and '.$where;
+        }
+        if(isset($data['is_short_comment']) && $data['is_short_comment']){
+            $where = 'M.is_short_comment = '.$data['is_short_comment'].' and '.$where;
+        }
+
+        //排序
+        $orderby = 'M.flux_linkage_time desc,M.id desc';
+
+        $offset = ($page-1) * $pageSize;  //游标
+        $limit = $pageSize;   //每页读取多少条
+
+        $reData = ['list'=>[],'sum'=>0];
+
+        //如果包含分类条件
+        $res=[];
+        $rows = DB::select('select M.id,M.name,M.number,M.release_time,M.created_at
+                ,M.is_download,M.is_subtitle,M.is_short_comment,M.is_hot
+                ,M.new_comment_time,M.flux_linkage_time,M.comment_num,M.score
+                ,M.small_cover,M.big_cove 
+                from movie as M
+                join movie_label_associate as L
+                on M.id = L.mid
+                where '.$where.' 
+                order by '.$orderby.' limit '.$offset.','.$limit.';');
+        $count = DB::select('select count(0) as nums
+                from movie as M
+                join movie_label_associate as L
+                on M.id = L.mid
                 where '.$where.';');
 
         //加工数据

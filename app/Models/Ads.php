@@ -16,7 +16,7 @@ class Ads extends Model
     public function lists($location='')
     {
         //优先读取缓存
-        $res = RedisCache::getZSetAll($this->cacheKey.':'.$location);
+        $res = RedisCache::getZSetAll($this->cacheKey.':'.$location,100);
         if($res){
             $row = [];
             foreach($res as $v){
@@ -35,7 +35,7 @@ class Ads extends Model
         }
 
         //读取缓存
-        $res = RedisCache::getZSetAll($this->cacheKey.':'.$location);
+        $res = RedisCache::getZSetAll($this->cacheKey.':'.$location,100);
 
         $row = [];
         if($res){

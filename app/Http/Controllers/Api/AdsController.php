@@ -21,7 +21,7 @@ class AdsController extends BaseController
 {
 
     /**
-     * 读取域名列表 
+     * 读取列表 
      */
     public function getList(Request $request)
     {

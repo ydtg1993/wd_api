@@ -185,9 +185,9 @@ class RedisCache
     /**
      * 读取集合中所有的数据 
      */
-    public static function getZSetAll($key)
+    public static function getZSetAll($key,$count=100)
     {
-        $res = Redis::command('ZRANGE',[$key,0,100]);
+        $res = Redis::command('ZRANGE',[$key,0,$count]);
         
         return $res;
     }
