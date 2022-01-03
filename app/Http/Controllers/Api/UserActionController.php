@@ -176,14 +176,14 @@ class UserActionController extends BaseController
             return $this->sendError('无效的动作类型！');
         }
         if($score < 1 || $score > 10){
-            return $this->sendError('无效的动作类型！');
+            return $this->sendError('无效评分！');
         }
         try {
             DB::beginTransaction();
-            $scoreNoteRecord = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->first();
+            $scoreNoteRecord = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid])->first();
             if($scoreNoteRecord){
                 MovieScoreNotes::where('id',$scoreNoteRecord->id)->update([
-                    'score' => $score
+                    'score' => $score,'status'=>1
                 ]);
             }else {
                 MovieScoreNotes::insert([
@@ -191,8 +191,9 @@ class UserActionController extends BaseController
                     'score' => $score,
                     'uid' => $uid
                 ]);
+                Movie::weightAdd($mid,1);
             }
-            $scoreNotes = MovieScoreNotes::where('mid', $mid)->pluck('score')->all();
+            $scoreNotes = MovieScoreNotes::where(['mid'=>$mid,'source_type'=>1,'status'=>1])->pluck('score')->all();
             $score_people = count($scoreNotes);
             $total = array_sum($scoreNotes);
             $score = (int)ceil($total / $score_people);
@@ -201,12 +202,14 @@ class UserActionController extends BaseController
                 ->where('status',1)
                 ->where('cid',0)
                 ->update(['score'=>$score]);
-            $seenMovieRecord =UserSeenMovie::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->first();
+            $seenMovieRecord =UserSeenMovie::where(['mid'=>$mid,'uid'=>$uid])->first();
             if($seenMovieRecord){
-                UserSeenMovie::where('id',$seenMovieRecord->id)->update(['score'=>$score]);
+                UserSeenMovie::where('id',$seenMovieRecord->id)->update(['score'=>$score,'status'=>1]);
             }else{
                 UserSeenMovie::insert(['mid'=>$mid,'uid'=>$uid,'score'=>$score]);
             }
+            RedisCache::clearCacheManageAllKey('movie');
+            RedisCache::clearCacheManageAllKey('userSeen',$uid);
         }catch (\Exception $e){
             DB::rollBack();
             return $this->sendError('数据处理异常');
