@@ -18,7 +18,7 @@ class UserWantSeeMovie  extends Model
     protected $table = 'user_want_see_movie';
 
     /**
-     * 想看电影 
+     * 想看电影
      */
     public function edit($uid=0, $mid=0, $status=0)
     {
@@ -40,7 +40,7 @@ class UserWantSeeMovie  extends Model
         //加权分，被点击一次想看，加1分；删除想看，减1分
         if($status == 1)
         {
-            echo "add";
+            //echo "add";
             Movie::weightAdd($mid,1);
         }else{
             Movie::weightLose($mid,1);
@@ -52,7 +52,7 @@ class UserWantSeeMovie  extends Model
     }
 
     /**
-     * 判断数据是否已经存在 
+     * 判断数据是否已经存在
      */
     public function check($uid=0, $mid=0,$status=1)
     {
