@@ -180,19 +180,10 @@ class UserActionController extends BaseController
         }
         try {
             DB::beginTransaction();
-            $scoreNoteRecord = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->first();
-            if($scoreNoteRecord){
-                MovieScoreNotes::where('id',$scoreNoteRecord->id)->update([
-                    'score' => $score
-                ]);
-            }else {
-                MovieScoreNotes::insert([
-                    'mid' => $mid,
-                    'score' => $score,
-                    'uid' => $uid
-                ]);
-            }
-            $scoreNotes = MovieScoreNotes::where('mid', $mid)->pluck('score')->all();
+            MovieScoreNotes::updateOrCreate(
+                ['mid'=>$mid,'uid'=>$uid,'status'=>1]
+                , ['score' => $score]);
+            $scoreNotes = MovieScoreNotes::where(['mid'=>$mid,'status'=>1])->pluck('score')->all();
             $score_people = count($scoreNotes);
             $total = array_sum($scoreNotes);
             $score = (int)ceil($total / $score_people);
@@ -201,7 +192,9 @@ class UserActionController extends BaseController
                 ->where('status',1)
                 ->where('cid',0)
                 ->update(['score'=>$score]);
-            UserSeenMovie::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->update(['score'=>$score]);
+            UserSeenMovie::updateOrCreate(
+                ['mid'=>$mid,'uid'=>$uid,'status'=>1]
+                , ['score' => $score]);
         }catch (\Exception $e){
             DB::rollBack();
             return $this->sendError('数据处理异常');
