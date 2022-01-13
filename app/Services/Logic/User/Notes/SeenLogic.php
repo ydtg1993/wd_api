@@ -38,9 +38,9 @@ class SeenLogic  extends NotesBase
         }
         $status = $data['status']??1;//1添加想看 2.取消
 
+        $score = $data['score']??0;
         if($status == 1)
         {
-            $score = $data['score']??0;
             if($score <= 0 || $score > 10)
             {
                 $this->errorInfo->setCode(500,'无效的评分数据!');
@@ -61,23 +61,13 @@ class SeenLogic  extends NotesBase
             MovieComment::add($uid,$mid,$comment,$score);
         }else{
             MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid])->update(['status'=>2]);
-            //数据库操作
-            $mdb = new UserSeenMovie();
-            $mdb->edit($uid, $mid, $status,0);
-
             //删除积分
             $mScore = new MovieScoreNotes();
             $mScore->rm($mid,$uid);
-
             //删除评论
             MovieComment::rm($uid,$mid);
-
-            //更新用户看过数量
-            $num_Seen = $mdb->total($uid);
-            UserClient::where('id',$uid)->update(['seen_num' =>$num_Seen]);
         }
 
-        $id = 0;
         $userSeenInfo = UserSeenMovie::where('uid',$uid)->where('status',1)->where('mid',$mid)->first();
         if(($userSeenInfo['id']??0)>0)
         {
