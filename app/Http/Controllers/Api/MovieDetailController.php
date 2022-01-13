@@ -233,8 +233,7 @@ class MovieDetailController extends BaseController
             }
 
             //读取用户
-            $MU = new UserClient();
-            $resUser = Common::objectToArray($MU->getListByids(array_unique($uids), 'id,nickname,avatar'));
+            $resUser = Common::objectToArray(UserClient::whereIn('id',array_unique($uids))->select('id','nickname','avatar')->get());
             $arrUser = [];    //用户数据
             foreach($resUser as $v){
                 $arrUser[$v['id']] = $v;

@@ -12,8 +12,10 @@ use App\Models\Movie;
 use App\Models\MovieComment;
 use App\Models\MovieLog;
 use App\Models\MovieScoreNotes;
+use App\Models\UserClient;
 use App\Models\UserLikeUser;
 use App\Models\UserSeenMovie;
+use App\Models\UserWantSeeMovie;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use App\Services\Logic\User\Notes\NotesLogic;
@@ -180,36 +182,19 @@ class UserActionController extends BaseController
         }
         try {
             DB::beginTransaction();
-            $scoreNoteRecord = MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid])->first();
-            if($scoreNoteRecord){
-                MovieScoreNotes::where('id',$scoreNoteRecord->id)->update([
-                    'score' => $score,'status'=>1
-                ]);
-            }else {
-                MovieScoreNotes::insert([
-                    'mid' => $mid,
-                    'score' => $score,
-                    'uid' => $uid
-                ]);
-                Movie::weightAdd($mid,1);
-            }
-            $scoreNotes = MovieScoreNotes::where(['mid'=>$mid,'source_type'=>1,'status'=>1])->pluck('score')->all();
-            $score_people = count($scoreNotes);
-            $total = array_sum($scoreNotes);
-            $score = (int)ceil($total / $score_people);
-            Movie::where('id', $mid)->update(['score' => $score, 'score_people' => $score_people]);
+            (new MovieScoreNotes())->addNew($mid,$uid,$score);
+            $mdb = new UserSeenMovie();
+            $mdb->edit($uid, $mid, 1,$score);
+            //更新用户看过数量
+            $num_Seen = $mdb->total($uid);
+            UserClient::where('id',$uid)->update(['seen_num' =>$num_Seen]);
+            //删除想看
+            $mdb = new UserWantSeeMovie();
+            $mdb->edit($uid, $mid, 2);
             MovieComment::where('mid',$mid)->where('uid',$uid)
                 ->where('status',1)
                 ->where('cid',0)
                 ->update(['score'=>$score]);
-            $seenMovieRecord =UserSeenMovie::where(['mid'=>$mid,'uid'=>$uid])->first();
-            if($seenMovieRecord){
-                UserSeenMovie::where('id',$seenMovieRecord->id)->update(['score'=>$score,'status'=>1]);
-            }else{
-                UserSeenMovie::insert(['mid'=>$mid,'uid'=>$uid,'score'=>$score]);
-            }
-            RedisCache::clearCacheManageAllKey('movie');
-            RedisCache::clearCacheManageAllKey('userSeen',$uid);
         }catch (\Exception $e){
             DB::rollBack();
             return $this->sendError('数据处理异常');

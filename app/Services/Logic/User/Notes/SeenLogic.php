@@ -17,6 +17,7 @@ use App\Models\UserClient;
 use App\Models\UserSeenMovie;
 use App\Services\Logic\RedisCache;
 use App\User;
+use Illuminate\Support\Facades\Response;
 
 class SeenLogic  extends NotesBase
 {
@@ -58,6 +59,22 @@ class SeenLogic  extends NotesBase
 
             //添加评论
             MovieComment::add($uid,$mid,$comment,$score);
+        }else{
+            MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid])->update(['status'=>2]);
+            //数据库操作
+            $mdb = new UserSeenMovie();
+            $mdb->edit($uid, $mid, $status,0);
+
+            //删除积分
+            $mScore = new MovieScoreNotes();
+            $mScore->rm($mid,$uid);
+
+            //删除评论
+            MovieComment::rm($uid,$mid);
+
+            //更新用户看过数量
+            $num_Seen = $mdb->total($uid);
+            UserClient::where('id',$uid)->update(['seen_num' =>$num_Seen]);
         }
 
         $id = 0;
