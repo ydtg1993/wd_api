@@ -109,7 +109,7 @@ class SeenController extends Controller
     }
 
     /**
-     * 读取看过的数据 
+     * 读取看过的数据
      */
     public function info(Request $request)
     {
@@ -147,7 +147,7 @@ class SeenController extends Controller
 
 
     /**
-     * 修改操作 
+     * 修改操作
      */
     public function edit(Request $request)
     {
@@ -203,8 +203,14 @@ class SeenController extends Controller
             $mScore->rm($mid,$uid);
         }
 
-        //添加评论
-        MovieComment::edit($uid,$mid,$comment,$score);
+        //修改评论
+        if(MovieComment::where('mid',$mid)->where('uid',$uid)
+            ->where('status',1)
+            ->where('cid',0)->exists()){
+            MovieComment::edit($uid,$mid,$comment,$score);
+        }else {
+            MovieComment::add($uid, $mid, $comment, $score);
+        }
 
         //更新用户看过数量
         $num_Seen = $mdb->total($uid);
@@ -225,7 +231,7 @@ class SeenController extends Controller
     }
 
     /**
-     * 删除操作 
+     * 删除操作
      */
     public function del(Request $request)
     {
