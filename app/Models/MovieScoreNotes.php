@@ -80,7 +80,7 @@ class MovieScoreNotes extends Model
     {
          MovieScoreNotes::where('mid',$mid)->where('uid',$uid)->where('status',1)->update(['status'=>2]);
         $this->avg($mid);
-        Movie::where('id',$mid)->decrement('score_people');
+        Movie::where('id',$mid)->decrement('score_people',2);
     }
 
     /**
@@ -94,24 +94,20 @@ class MovieScoreNotes extends Model
         {
             $collection_score = $movieInfo->collection_score;
             $collection_score_people = $movieInfo->collection_score_people;
-            $score = $movieInfo->score;
             $score_people = $movieInfo->score_people;
+            $people = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->count();
+            $score = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->sum('score');
 
-            $real_people = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->count();
-            $real_score = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->sum('score');
-
-            $total_score = ($collection_score * $collection_score_people) + ($score * $score_people) + $real_score;
-            $total_people = $collection_score_people + $score_people + $real_people;
             //计算平均分
-            if(($collection_score_people + $score_people + $real_people) > 0)
+            if(($collection_score_people + $people) > 0)
             {
-                $score = $total_score / $total_people;
+                $score = (($collection_score * $collection_score_people) + $score)/($collection_score_people + $people);
             }
             else
             {
                 $score = 5;
             }
-            Movie::where('id',$mid)->update(['score'=>$score,'score_people'=>$total_people]);
+            Movie::where('id',$mid)->update(['score'=>$score,'score_people'=> ($score_people + 1)]);
         }
 
         RedisCache::clearCacheManageAllKey('movie');
