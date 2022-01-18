@@ -79,14 +79,13 @@ class MovieScoreNotes extends Model
     public function rm($mid,$uid)
     {
          MovieScoreNotes::where('mid',$mid)->where('uid',$uid)->where('status',1)->update(['status'=>2]);
-        $this->avg($mid);
-        Movie::where('id',$mid)->decrement('score_people',2);
+        $this->avg($mid,false);
     }
 
     /**
      * 计算平均分
      */
-    public function avg($mid = 0)
+    public function avg($mid = 0,$increase = true)
     {
         //读取影片频评分信息
         $movieInfo = Movie::where('id',$mid)->first();
@@ -107,7 +106,11 @@ class MovieScoreNotes extends Model
             {
                 $score = 5;
             }
-            Movie::where('id',$mid)->update(['score'=>$score,'score_people'=> ($score_people + 1)]);
+            if($increase) {
+                Movie::where('id', $mid)->update(['score' => $score, 'score_people' => ($score_people + 1)]);
+            }else{
+                Movie::where('id', $mid)->update(['score' => $score, 'score_people' => ($score_people - 1)]);
+            }
         }
 
         RedisCache::clearCacheManageAllKey('movie');
