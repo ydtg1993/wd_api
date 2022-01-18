@@ -30,12 +30,12 @@ class MovieScoreNotes extends Model
         //计算平均分
         $mdb = new MovieScoreNotes();
         $mdb->avg($mid);
-        
+
         return $dataObj->id;
     }
 
     /**
-     * 新增评分 
+     * 新增评分
      */
     public function addNew($mid,$uid,$score)
     {
@@ -50,12 +50,12 @@ class MovieScoreNotes extends Model
         //计算平均分
         $mdb = new MovieScoreNotes();
         $mdb->avg($mid);
-        
+
         return $dataObj->id;
     }
 
     /**
-     * 读取数据 
+     * 读取数据
      */
     public function info($uid=0, $mid=0)
     {
@@ -65,7 +65,7 @@ class MovieScoreNotes extends Model
     }
 
     /**
-     * 修改评分 
+     * 修改评分
      */
     public function edit($mid,$uid,$score)
     {
@@ -74,7 +74,7 @@ class MovieScoreNotes extends Model
     }
 
     /**
-     * 删除积分 
+     * 删除积分
      */
     public function rm($mid,$uid)
     {
@@ -83,7 +83,7 @@ class MovieScoreNotes extends Model
     }
 
     /**
-     * 计算平均分 
+     * 计算平均分
      */
     public function avg($mid = 0)
     {
@@ -91,8 +91,8 @@ class MovieScoreNotes extends Model
         $movieInfo = Movie::where('id',$mid)->first();
         if(($movieInfo['id']??0)>0)
         {
-            $collection_score = $movieInfo['collection_score']??0;
-            $collection_score_people = $movieInfo['collection_score_people']??0;
+            $collection_score = $movieInfo->collection_score??0;
+            $collection_score_people = $movieInfo->collection_score_people??0;
 
             $people = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->count();
             $score = MovieScoreNotes::where('mid',$mid)->where('source_type',1)->where('status',1)->sum('score');
@@ -110,5 +110,5 @@ class MovieScoreNotes extends Model
         }
 
         RedisCache::clearCacheManageAllKey('movie');
-    } 
+    }
 }
