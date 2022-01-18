@@ -80,6 +80,7 @@ class MovieScoreNotes extends Model
     {
          MovieScoreNotes::where('mid',$mid)->where('uid',$uid)->where('status',1)->update(['status'=>2]);
         $this->avg($mid);
+        Movie::where('id',$mid)->decrement('score_people');
     }
 
     /**
