@@ -4,14 +4,22 @@ Jd3bN:w$4v!w#$C%
 yellowDoubanDB
 
 
-CREATE TABLE `batch_comment_script` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `data` json NOT NULL,
-  `msg` varchar(1000) DEFAULT '',
-  `comment_ids` json DEFAULT NULL,
-  `admin_id` int(10) NOT NULL COMMENT '批量处理上传评论任务记录',
-  `status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0未处理 1已处理 2异常',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COMMENT='批量上传批量任务记录';
+
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php composer-setup.php
+chmod a+x composer.phar
+mv composer.phar /usr/local/bin/composer
+composer self-update
+COMPOSER_MEMORY_LIMIT=-1 composer update --no-interaction --ansi --ignore-platform-reqs
+
+excel文本工具库
+COMPOSER_MEMORY_LIMIT=-1 composer require phpoffice/phpspreadsheet
+apt-get install -y \
+        zlib1g-dev \
+        zip \
+  && docker-php-ext-install zip
+
+安装imagick
+apt-get install imagemagick
+pecl install imagick
+php.ini添加extension=imagick.so
