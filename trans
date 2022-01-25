@@ -4,7 +4,7 @@ Jd3bN:w$4v!w#$C%
 yellowDoubanDB
 
 
-
+curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
 php composer-setup.php
 chmod a+x composer.phar
