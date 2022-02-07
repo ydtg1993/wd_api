@@ -180,6 +180,9 @@ class UserActionController extends BaseController
         if($score < 1 || $score > 10){
             return $this->sendError('无效评分！');
         }
+        if(MovieScoreNotes::where(['mid'=>$mid,'uid'=>$uid,'status'=>1])->exists()){
+            return $this->sendError('已经评过分！');
+        }
         try {
             DB::beginTransaction();
             (new MovieScoreNotes())->addNew($mid,$uid,$score);

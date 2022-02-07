@@ -136,6 +136,9 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], f
     Route::any('company/detail', 'FilmCompaniesDetailController@index');
     Route::any('company/products', 'FilmCompaniesDetailController@products');
 });
+Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
+    Route::any('label/detail', 'LabelDetailController@index');
+});
 
 //登录 未登录双用
 Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], function () {
@@ -161,7 +164,11 @@ Route::group(['namespace' => 'Api','middleware' => ['allow_origin','tokens']], f
     Route::any('user/getHomeUser', 'UserActionController@getHomeUser');//其他用户个人主页信息
     Route::any('user/getHomeUserAction', 'UserActionController@getHomeUserAction');//其他用户个人主页动作信息
 
-   //灌水专用
+    /***************************标签模块*****************************/
+    Route::any('label/list', 'LabelController@getList');
+    Route::any('label/category', 'LabelController@getCategory');
+
+    //灌水专用
    Route::any('/nologin/batch_hand_send', 'SeenController@batch');
 
 });

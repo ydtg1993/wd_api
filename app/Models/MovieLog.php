@@ -52,9 +52,10 @@ class MovieLog extends Model
             }
 
             $log = $log->selectRaw('count(mid) as num,mid')->groupBy('mid');
-            $reData['sum'] = DB::table( DB::raw("({$log->toSql()}) as log") )
+            /*$reData['sum'] = DB::table( DB::raw("({$log->toSql()}) as log") )
                 ->mergeBindings($log->getQuery())
-                ->count();
+                ->count();*/
+            $reData['sum'] = $log->offset(0)->limit(101)->get()->count();
             $browseList = $log->orderBy('num', 'desc')->offset(($page - 1) * $pageSize)->limit($pageSize)->get()->pluck('mid')->toArray();
 
             $browseListTemp = [];

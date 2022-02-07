@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Services\Logic\Comm\ConfLogic;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
@@ -77,7 +78,7 @@ class LabelController extends BaseController
     }
 
     /**
-     * 读取标签分类 
+     * 读取标签分类
      */
     public function getCategory(Request $request)
     {
@@ -90,7 +91,7 @@ class LabelController extends BaseController
                 $data[]=json_decode($v);
             }
         }else{
-            $lists = MovieLabelCategory::select('id','name')->where('status',1)->orderBy('sort','asc')->orderBy('id','asc')->get();
+            $lists = DB::table('movie_category')->select('id','name')->where(['status'=>1,'show'=>1])->orderBy('sort','asc')->orderBy('id','asc')->get();
             //遍历生成数据
             foreach($lists as $k=>$v)
             {
