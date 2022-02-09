@@ -15,8 +15,8 @@ class Movie extends Model
     const pagesize = 10;//默认页数
 
     /**
-     * 
-     * 读取数据通过分类-使用缓存 
+     *
+     * 读取数据通过分类-使用缓存
      */
     public function getMovieListByCache($data,$isCache)
     {
@@ -38,7 +38,7 @@ class Movie extends Model
     }
 
     /**
-     * 读取影片列表通过分类 
+     * 读取影片列表通过分类
      */
     public static function getMovieList($data)
     {
@@ -54,7 +54,7 @@ class Movie extends Model
         if($cid>0) {   //分类
             $where = 'cid = '.$cid.' and '.$where;
         }
-        if(isset($data['is_subtitle']) && $data['is_subtitle']){  
+        if(isset($data['is_subtitle']) && $data['is_subtitle']){
             $where = 'is_subtitle = '.$data['is_subtitle'].' and '.$where;
         }
         if(isset($data['is_download']) && $data['is_download']){
@@ -95,12 +95,12 @@ class Movie extends Model
         $rows = DB::select('select id,name,number,release_time,created_at
                 ,is_download,is_subtitle,is_short_comment,is_hot
                 ,new_comment_time,flux_linkage_time,comment_num,score
-                ,small_cover,big_cove 
-                from movie 
-                where '.$where.' 
+                ,small_cover,big_cove
+                from movie
+                where '.$where.'
                 order by '.$orderby.' limit '.$offset.','.$limit.';');
         $count = DB::select('select count(0) as nums
-                from movie 
+                from movie
                 where '.$where.';');
 
         //加工数据
@@ -111,7 +111,7 @@ class Movie extends Model
         }
 
         $reData['list'] = $res;
-        $reData['sum'] = $count[0]->nums; 
+        $reData['sum'] = $count[0]->nums;
 
         return $reData;
     }
@@ -143,7 +143,7 @@ class Movie extends Model
 
             $where = 'L.cid in ('.$lid.') and '.$where;
         }
-        if(isset($data['is_subtitle']) && $data['is_subtitle']){  
+        if(isset($data['is_subtitle']) && $data['is_subtitle']){
             $where = 'M.is_subtitle = '.$data['is_subtitle'].' and '.$where;
         }
         if(isset($data['is_download']) && $data['is_download']){
@@ -160,24 +160,22 @@ class Movie extends Model
         $limit = $pageSize;   //每页读取多少条
 
         $reData = ['list'=>[],'sum'=>0];
-
         //如果包含分类条件
         $res=[];
         $rows = DB::select('select M.id,M.name,M.number,M.release_time,M.created_at
                 ,M.is_download,M.is_subtitle,M.is_short_comment,M.is_hot
                 ,M.new_comment_time,M.flux_linkage_time,M.comment_num,M.score
-                ,M.small_cover,M.big_cove 
+                ,M.small_cover,M.big_cove
                 from movie as M
                 join movie_label_associate as L
                 on M.id = L.mid
-                where '.$where.' 
+                where '.$where.'
                 order by '.$orderby.' limit '.$offset.','.$limit.';');
         $count = DB::select('select count(0) as nums
                 from movie as M
                 join movie_label_associate as L
                 on M.id = L.mid
                 where '.$where.';');
-
         //加工数据
         $rows = Common::objectToArray($rows);
         foreach($rows as $v)
@@ -186,7 +184,7 @@ class Movie extends Model
         }
 
         $reData['list'] = $res;
-        $reData['sum'] = $count[0]->nums; 
+        $reData['sum'] = $count[0]->nums;
 
         return $reData;
     }

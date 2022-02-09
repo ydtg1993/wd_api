@@ -17,6 +17,7 @@ use App\Models\MovieNumberAss;
 use App\Models\UserLikeNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class NumberDetailController extends BaseController
 {
@@ -63,21 +64,26 @@ class NumberDetailController extends BaseController
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
-
+            $id = $request->input('id');
             $page = $request->input('page');
             $pageSize = $request->input('pageSize');
             $skip = $pageSize * ($page - 1);
+            $filter = $request->input('filter');
+            $sort = $request->input('sort');
 
-            $movie_ids = MovieNumberAss::where('nid',$request->input('id'))->pluck('mid')->all();
-
-            $movies = MovieNumberAss::where(['movie_number_associate.nid' => $request->input('id'), 'movie.status' => 1])
-                ->whereIn('movie.id',$movie_ids)
+            $cache = "number_detail_products:{$id}:{$page}:{$filter}:{$sort}";
+            $records = Redis::get($cache);
+            if($records){
+                $data = json_decode($records,true);
+                return $this->sendJson($data);
+            }
+            $movies = MovieNumberAss::where(['movie_number_associate.nid' => $id, 'movie.status' => 1])
                 ->join('movie', 'movie.id', '=', 'movie_number_associate.mid')
                 ->select('movie.*',
                     'movie_number_associate.mid');
 
             //filter
-            switch ($request->input('filter')) {
+            switch ($filter) {
                 case 1:
                     $movies = $movies->where('movie.is_subtitle', 2);
                     break;
@@ -89,7 +95,7 @@ class NumberDetailController extends BaseController
                     break;
             }
             //sort
-            switch ($request->input('sort')){
+            switch ($sort){
                 case 1:
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
@@ -113,6 +119,7 @@ class NumberDetailController extends BaseController
             foreach ($movies as $movie) {
                 $data['list'][] = Movie::formatList($movie);
             }
+            Redis::setex($cache,3600,json_encode($data));
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());

@@ -15,6 +15,7 @@ use App\Models\MovieActorAss;
 use App\Models\UserLikeActor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class ActorDetailController extends BaseController
 {
@@ -34,7 +35,6 @@ class ActorDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
-            //这里后期有空加缓存
             $actor = MovieActor::where('id', $request->input('id'))->with('names')->first();
             $names = [];
             foreach ($actor->names as $name) {
@@ -47,7 +47,7 @@ class ActorDetailController extends BaseController
             $sum = MovieActorAss::where('aid',$data['id']??0 )->where('status', 1)->count();
             if($sum != ($data['movie_sum']??0))
             {
-                MovieActor::where('id',$data['id']??0 )->update(['movie_sum'=>$sum]);//修正演员影片数量
+                MovieActor::where('id',$data['id']??0 )->update(['movie_sum'=>$sum]);
                 $data['movie_sum'] = $sum;
             }
 
@@ -76,17 +76,26 @@ class ActorDetailController extends BaseController
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
 
+            $id = $request->input('id');
             $page = $request->input('page');
             $pageSize = $request->input('pageSize');
             $skip = $pageSize * ($page - 1);
+            $filter = $request->input('filter');
+            $sort = $request->input('sort');
 
-            $movies = MovieActorAss::where(['movie_actor_associate.aid' => $request->input('id'), 'movie.status' => 1])
+            $cache = "actor_detail_products:{$id}:{$page}:{$filter}:{$sort}";
+            $records = Redis::get($cache);
+            if($records){
+                $data = json_decode($records,true);
+                return $this->sendJson($data);
+            }
+            $movies = MovieActorAss::where(['movie_actor_associate.aid' => $id, 'movie.status' => 1])
                 ->join('movie', 'movie.id', '=', 'movie_actor_associate.mid')
                 ->select('movie.*',
                     'movie_actor_associate.mid');
 
             //filter
-            switch ($request->input('filter')) {
+            switch ($filter) {
                 case 1:
                     $movies = $movies->where('movie.is_subtitle', 2);
                     break;
@@ -98,7 +107,7 @@ class ActorDetailController extends BaseController
                     break;
             }
             //sort
-            switch ($request->input('sort')){
+            switch ($sort){
                 case 1:
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
@@ -124,6 +133,7 @@ class ActorDetailController extends BaseController
             foreach ($movies as $movie) {
                 $data['list'][] = Movie::formatList($movie);
             }
+            Redis::setex($cache,3600,json_encode($data));
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());

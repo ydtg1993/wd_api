@@ -18,6 +18,7 @@ use App\Models\MovieSeriesAss;
 use App\Models\UserLikeFilmCompanies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class FilmCompaniesDetailController extends BaseController
 {
@@ -64,21 +65,26 @@ class FilmCompaniesDetailController extends BaseController
             if ($validator->fails()) {
                 throw new \Exception($validator->errors()->getMessageBag()->all()[0]);
             }
-
+            $id = $request->input('id');
             $page = $request->input('page');
             $pageSize = $request->input('pageSize');
             $skip = $pageSize * ($page - 1);
+            $filter = $request->input('filter');
+            $sort = $request->input('sort');
 
-            $movie_ids = MovieFilmCompaniesAss::where('film_companies_id',$request->input('id'))->pluck('mid')->all();
-
-            $movies = MovieFilmCompaniesAss::where(['movie_film_companies_associate.film_companies_id' => $request->input('id'), 'movie.status' => 1])
-                ->whereIn('movie.id',$movie_ids)
+            $cache = "film_company_detail_products:{$id}:{$page}:{$filter}:{$sort}";
+            $records = Redis::get($cache);
+            if($records){
+                $data = json_decode($records,true);
+                return $this->sendJson($data);
+            }
+            $movies = MovieFilmCompaniesAss::where(['movie_film_companies_associate.film_companies_id' => $id, 'movie.status' => 1])
                 ->join('movie', 'movie.id', '=', 'movie_film_companies_associate.mid')
                 ->select('movie.*',
                     'movie_film_companies_associate.mid');
 
             //filter
-            switch ($request->input('filter')) {
+            switch ($filter) {
                 case 1:
                     $movies = $movies->where('movie.is_subtitle', 2);
                     break;
@@ -90,7 +96,7 @@ class FilmCompaniesDetailController extends BaseController
                     break;
             }
             //sort
-            switch ($request->input('sort')){
+            switch ($sort){
                 case 1:
                     $movies = $movies->orderBy('movie.release_time', 'DESC');
                     break;
@@ -114,6 +120,7 @@ class FilmCompaniesDetailController extends BaseController
             foreach ($movies as $movie) {
                 $data['list'][] = Movie::formatList($movie);
             }
+            Redis::setex($cache,3600,json_encode($data));
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());
             return $this->sendError($e->getMessage());
