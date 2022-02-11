@@ -23,6 +23,7 @@ class NotesLogic extends HandleLogic
     const LIKE_NUMBER_NOTES = 8;//收藏的番号
     const LIKE_SERIES_NOTES = 9;//收藏的系列
     const PIECE_LIST_NOTES = 10;//片单相关
+    const LIKE_LABEL_NOTES = 11;//标签
 
     protected $namePath = 'App\\Services\\Logic\\User\\Notes\\';
     protected $baseClassName = 'BaseLogic';
@@ -38,7 +39,7 @@ class NotesLogic extends HandleLogic
         self::LIKE_NUMBER_NOTES=>'LikeNumber',
         self::LIKE_SERIES_NOTES=>'LikeSeries',
         self::PIECE_LIST_NOTES=>'PieceListLogic',
-
+        self::LIKE_LABEL_NOTES=>'LikeLabel'
     ];
 
     /**

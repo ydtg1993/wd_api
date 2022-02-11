@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Services\Logic\RedisCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class MovieLog extends Model
 {
@@ -51,11 +52,27 @@ class MovieLog extends Model
                 $time == 3?($log = $log->where('created_at','>=',date('Y-m-01 00:00:00',time()))):null;
             }
 
-            $log = $log->selectRaw('count(mid) as num,mid')->groupBy('mid');
+            $rKey = "movie_log:rank:".$type;
+            $records = Redis::get($rKey);
+            if($records){
+                $log = json_decode($records,true);
+            }else{
+                $log = $log->selectRaw('count(mid) as num,mid')->groupBy('mid');
+
+                Redis::setex($rKey,3600,json_encode($log));
+            }
+
             /*$reData['sum'] = DB::table( DB::raw("({$log->toSql()}) as log") )
                 ->mergeBindings($log->getQuery())
                 ->count();*/
-            $reData['sum'] = $log->offset(0)->limit(101)->get()->count();
+            $rKey= "rank:count:type".$type;
+            $rCount = Redis::get($rKey);
+            if($rCount <1){
+                $count = $log->offset(0)->limit(101)->get()->count();
+                Redis::set($rKey,$count,"EX",3600);
+            }
+
+            $reData['sum'] = $rCount;
             $browseList = $log->orderBy('num', 'desc')->offset(($page - 1) * $pageSize)->limit($pageSize)->get()->pluck('mid')->toArray();
 
             $browseListTemp = [];

@@ -7,6 +7,8 @@ use App\Services\Logic\Common;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\Models\MovieLabel;
+use App\Models\MovieLabelCategoryAssociate;
+use Illuminate\Support\Facades\Redis;
 
 class Movie extends Model
 {
@@ -92,16 +94,34 @@ class Movie extends Model
 
         //如果包含分类条件
         $res=[];
-        $rows = DB::select('select id,name,number,release_time,created_at
+        $rows =[];
+
+        $rKey = "movie:lists:catecory:".$cid;
+        $records = Redis::get($rKey);
+        if($records){
+            $rows = json_decode($records,true);
+        }else{
+            $rows = DB::select('select id,name,number,release_time,created_at
                 ,is_download,is_subtitle,is_short_comment,is_hot
                 ,new_comment_time,flux_linkage_time,comment_num,score
                 ,small_cover,big_cove
                 from movie
                 where '.$where.'
                 order by '.$orderby.' limit '.$offset.','.$limit.';');
-        $count = DB::select('select count(0) as nums
+
+            Redis::setex($rKey,3600,json_encode($rows));
+        }
+        
+
+        //缓存
+        $rKey = "movie:count:catecory:".$cid;
+        $rCount = Redis::get($rKey);
+        if($rCount <1){
+            $count = DB::select('select count(0) as nums
                 from movie
                 where '.$where.';');
+            Redis::set($rKey,$count[0]->nums,"EX",3600);
+        }
 
         //加工数据
         $rows = Common::objectToArray($rows);
@@ -111,7 +131,7 @@ class Movie extends Model
         }
 
         $reData['list'] = $res;
-        $reData['sum'] = $count[0]->nums;
+        $reData['sum'] = $rCount;
 
         return $reData;
     }
@@ -125,9 +145,11 @@ class Movie extends Model
         $page = $data['page']??1;
         $pageSize = $data['pageSize']??10;
         $lid = $data['cid']??0;
+        $gid = $data['gid']??0;
 
         //判断搜索条件
         $where = ' M.status =1 and M.is_up=1 ';
+
         if($lid>0) {
             //读取一次标签，如果是父标签
             $children = MovieLabel::select('id')->where('cid',$lid)->get();
@@ -142,6 +164,11 @@ class Movie extends Model
             }
 
             $where = 'L.cid in ('.$lid.') and '.$where;
+        }
+        
+        if($gid>0) {
+            //根据分类读取
+            $where = 'M.cid ='.$gid.' and '.$where;
         }
         if(isset($data['is_subtitle']) && $data['is_subtitle']){
             $where = 'M.is_subtitle = '.$data['is_subtitle'].' and '.$where;
@@ -160,9 +187,22 @@ class Movie extends Model
         $limit = $pageSize;   //每页读取多少条
 
         $reData = ['list'=>[],'sum'=>0];
-        //如果包含分类条件
-        $res=[];
-        $rows = DB::select('select M.id,M.name,M.number,M.release_time,M.created_at
+
+        //最终sql
+        $selectSql = 'select distinct(M.id),M.name,M.number,M.release_time,M.created_at
+                ,M.is_download,M.is_subtitle,M.is_short_comment,M.is_hot
+                ,M.new_comment_time,M.flux_linkage_time,M.comment_num,M.score
+                ,M.small_cover,M.big_cove
+                from movie as M
+                where '.$where.'
+                order by '.$orderby.' limit '.$offset.','.$limit.';';
+        $countSql = 'select count(distinct(M.id)) as nums
+                from movie as M
+                where '.$where.';';
+
+        if($lid>0) {
+            //只有读取标签时，才决定连表
+            $selectSql = 'select distinct(M.id),M.name,M.number,M.release_time,M.created_at
                 ,M.is_download,M.is_subtitle,M.is_short_comment,M.is_hot
                 ,M.new_comment_time,M.flux_linkage_time,M.comment_num,M.score
                 ,M.small_cover,M.big_cove
@@ -170,12 +210,20 @@ class Movie extends Model
                 join movie_label_associate as L
                 on M.id = L.mid
                 where '.$where.'
-                order by '.$orderby.' limit '.$offset.','.$limit.';');
-        $count = DB::select('select count(0) as nums
+                order by '.$orderby.' limit '.$offset.','.$limit.';';
+            $countSql = 'select count(distinct(M.id)) as nums
                 from movie as M
                 join movie_label_associate as L
                 on M.id = L.mid
-                where '.$where.';');
+                where '.$where.';';
+        }
+
+        //如果包含分类条件
+        $res=[];
+        $rows = DB::select($selectSql);
+
+        $count = DB::select($countSql);
+
         //加工数据
         $rows = Common::objectToArray($rows);
         foreach($rows as $v)

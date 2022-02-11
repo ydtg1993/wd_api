@@ -21,11 +21,11 @@ class ThrottleRequest extends ThrottleRequests
 
         $maxAttempts = $this->resolveMaxAttempts($request, $maxAttempts);
 
-        if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
+        /*if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
             return $this->buildException($key, $maxAttempts);
             //throw $this->buildException($key, $maxAttempts);
             // 原来的是抛出异常,修改成直接返回
-        }
+        }*/
         //去掉 `* 60` 限制秒级,加上去限制分钟,要限制其他单位，可以自己算的
 //        $this->limiter->hit($key, $decayMinutes);
         $this->limiter->hit($key, $decayMinutes * 60);
@@ -43,12 +43,13 @@ class ThrottleRequest extends ThrottleRequests
         $retryAfter = $this->limiter->availableIn($key);
 
         //要返回的数据
-        $message = json_encode([
+        /*$message = json_encode([
             'code' => 429,
             'data' => null,
             'msg' => '您的请求太频繁，已被限制请求',
             'retryAfter' => $retryAfter,
         ], 320);
+        */
 
         $response = new Response($message, 200);
 
