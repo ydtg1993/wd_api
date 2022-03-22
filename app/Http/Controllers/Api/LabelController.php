@@ -73,6 +73,7 @@ class LabelController extends BaseController
                 }
             }
         }
+        array_shift($data);
 
         return Response::json(['code'=>200,'msg'=>'操作成功','data'=>$data]);
     }

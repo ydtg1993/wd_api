@@ -88,6 +88,8 @@ class UserController extends  BaseController
         $tempData = [
             'login_ip'=>$request->getClientIp(),
             'login_time'=>date('Y-m-d H:i:s',time()),
+            'login_device'=>$request->header('device'),
+            'push_code'=>$request->header('pushcode')
         ];//更新登录记录
 
         $userInfoObj->alterUserBase($tempData,$userId);//更新登录信息
@@ -118,10 +120,14 @@ class UserController extends  BaseController
             return $this->sendJson([],500,'您的用户名有敏感词，请更改！');
         }*/
 
+        /**注册时，捕捉设备类型**/
+        $regDevice = $request->header('device')??'web';
+        $pushCode = $request->header('pushcode')??'';
+
         $userInfo = new UserInfoLogic();
         $reData = (intval($data['type']??1) == 1) ?
-            $userInfo->registerPhone($data['account']??'',$data['pwd']??'',$data['code']??''):
-            $userInfo->registerEmail($data['account']??'',$data['pwd']??'',$data['code']??'');
+            $userInfo->registerPhone($data['account']??'',$data['pwd']??'',$data['code']??'',$regDevice,$pushCode):
+            $userInfo->registerEmail($data['account']??'',$data['pwd']??'',$data['code']??'',$regDevice,$pushCode);
 
         if($reData === false)
         {
@@ -320,12 +326,17 @@ class UserController extends  BaseController
         //第一步，先判断验证码是否正确
         $res = false;
         $ty = 'email';
+
+        /**注册时，捕捉设备类型**/
+        $regDevice = $request->header('device')??'web';
+        $pushCode = $request->header('pushcode')??'';
+
         if (SmsHandle::isMobile($account)) 
         {
             $ty = 'phone';
-            $res = App::make('CodeServiceWithDb')->checkCode($account,'phone',$code);
+            $res = App::make('CodeServiceWithDb')->checkCode($account,'phone',$code,$regDevice,$pushCode);
         }else{
-            $res = App::make('CodeServiceWithDb')->checkCode($account,'email',$code);
+            $res = App::make('CodeServiceWithDb')->checkCode($account,'email',$code,$regDevice,$pushCode);
         }
 
         if($res===false){
