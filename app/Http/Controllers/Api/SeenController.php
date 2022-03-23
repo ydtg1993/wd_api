@@ -14,6 +14,7 @@ use App\Services\Logic\Common;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\Logic\User\UserInfoLogic;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Response;
 
 class SeenController extends Controller
@@ -29,8 +30,12 @@ class SeenController extends Controller
             return Response::json(['code'=>500,'msg'=>'无效用户']);
         }
 
-        if(!Common::wangyiVerify()){
-            return Response::json(['code'=>500,'msg'=>'验证码错误']);
+        $cache = 'Comment:verify:switch';
+        $wangyiVerify = Redis::get($cache);
+        if ($wangyiVerify == 1) {
+            if (!Common::wangyiVerify()) {
+                return Response::json(['code' => 500, 'msg' => '验证码错误']);
+            }
         }
 
         $mid = $request->input('mid')??0;

@@ -22,17 +22,19 @@ class Movie extends Model
      */
     public function getMovieListByCache($data, $isCache)
     {
-        $pageSize = $data['pageSize'] ?? 10;
+        $page = $data['page']??1;
+        $pageSize = $data['pageSize']??12;
+        $cid = $data['cid']??0;
 
-        if ($pageSize > 20) {
-            return;
-        }
-
-        //标签走另外的函数
-        if ($data['home_type'] == 5) {
-            $reData = self::getMovieListBylabel($data);
-        } else {
-            $reData = self::getMovieList($data);
+        $reData = RedisCache::getCacheDataOnly('movie','movie:category:list:',['home_type'=>$data['home_type'],'cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
+        if(!$reData){
+            //标签走另外的函数
+            if($data['home_type']==5){
+                $reData = self::getMovieListBylabel($data);
+            }else{
+                $reData = self::getMovieList($data);
+            }
+            RedisCache::setCacheDataOnly('movie','movie:category:list:',$reData,['home_type'=>$data['home_type'],'cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
         }
         return $reData;
     }
@@ -43,7 +45,7 @@ class Movie extends Model
     public static function getMovieList($data)
     {
         $page = $data['page'] ?? 1;
-        $pageSize = $data['pageSize'] ?? 10;
+        $pageSize = $data['pageSize'] == 12 ? 12:10;
         $cid = $data['cid'] ?? 0;
 
         //判断搜索条件
@@ -91,9 +93,10 @@ class Movie extends Model
         $reData = ['list' => [], 'sum' => 0];
 
         //如果包含分类条件
-        $res = [];
-        $cache = "home:" . md5($where . $orderby) . ":$page";
-        $cache_nums = "home:" . md5($where) . ":nums";
+        $res=[];
+        $cache = "home:".md5($where.$orderby).":".$page."_".$pageSize;
+        $cache_nums = "home:".md5($where.$orderby).":nums";
+
         $record = Redis::get($cache);
         $nums = Redis::get($cache_nums);
         if (!$record) {
@@ -121,7 +124,7 @@ class Movie extends Model
             Redis::setex($cache_nums, 7200, $nums);
         }
 
-        $reData['list'] = $res;
+        $reData['list'] = Common::objectToArray($res);
         $reData['sum'] = (int)$nums;
 
         return $reData;
@@ -208,7 +211,7 @@ class Movie extends Model
         }
 
         //如果包含分类条件
-        $cache = "home:" . md5($where . $orderby) . ":$page";
+        $cache = "home:" . md5($where . $orderby) . ":".$page."_".$pageSize;
         $cache_nums = "home:" . md5($where) . ":nums";
         $res = [];
         $record = Redis::get($cache);
@@ -230,7 +233,7 @@ class Movie extends Model
             Redis::setex($cache_nums, 7200, $nums);
         }
 
-        $reData['list'] = $res;
+        $reData['list'] = Common::objectToArray($res);
         $reData['sum'] = (int)$nums;
 
         return $reData;

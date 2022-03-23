@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\MessageBag;
 
 
@@ -32,6 +33,14 @@ class ConfController extends BaseController
     {
         try {
             $data = $this->confLogic->getAllConf($request);
+
+            $cache = 'Comment:verify:switch';
+            $res = Redis::get($cache);
+            if ($res == 1) {
+                $data['comment_verify_switch'] = 1;
+            } else {
+                $data['comment_verify_switch'] = 0;
+            }
             return $this->sendJson($data);
         }catch (\Exception $e){
             Log::error('conf error:'.$e->getMessage());

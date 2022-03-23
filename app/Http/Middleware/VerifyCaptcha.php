@@ -11,6 +11,7 @@ namespace App\Http\Middleware;
 use App\Services\Logic\Common;
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redis;
 
 class VerifyCaptcha
 {
@@ -30,7 +31,17 @@ class VerifyCaptcha
             'msg' => '验证码错误',
             'data' => (object)[],
         ];
-        if(!Common::wangyiVerify()){
+
+        $verify_flag = true;
+        $uri = $request->getRequestUri();
+        if($uri == '/api/movie/reply'){
+            $cache = 'Comment:verify:switch';
+            $wangyiVerify = Redis::get($cache);
+            if ($wangyiVerify !== '1') {
+                $verify_flag = false;
+            }
+        }
+        if($verify_flag && !Common::wangyiVerify()){
             return response()->json($error);
         }
         return $next($request);

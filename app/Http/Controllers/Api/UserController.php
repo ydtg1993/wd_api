@@ -331,7 +331,7 @@ class UserController extends  BaseController
         $regDevice = $request->header('device')??'web';
         $pushCode = $request->header('pushcode')??'';
 
-        if (SmsHandle::isMobile($account)) 
+        if (SmsHandle::isMobile($account))
         {
             $ty = 'phone';
             $res = App::make('CodeServiceWithDb')->checkCode($account,'phone',$code,$regDevice,$pushCode);
@@ -349,13 +349,13 @@ class UserController extends  BaseController
         //第二部，判断是否账户是否存在
         $userInfoObj = new UserInfoLogic();
         $userInfo = false;
-        if ($ty=='phone') 
+        if ($ty=='phone')
         {
             $userInfo = $userInfoObj->getPhoneUser($account??'');
         }else{
             $userInfo = $userInfoObj->getEmailUser($account??'');
         }
-        
+
         //不存在时，创建新账户
         if(!$userInfo)
         {
@@ -371,6 +371,8 @@ class UserController extends  BaseController
             $tempData = [
                 'login_ip'=>$request->getClientIp(),
                 'login_time'=>date('Y-m-d H:i:s',time()),
+                'login_device'=>$request->header('device'),
+                'push_code'=>$request->header('pushcode')
             ];//更新登录记录
 
             $userInfoObj->alterUserBase($tempData,$userId);//更新登录信息
@@ -399,6 +401,8 @@ class UserController extends  BaseController
         $tempData = [
             'login_ip'=>$request->getClientIp(),
             'login_time'=>date('Y-m-d H:i:s',time()),
+            'login_device'=>$request->header('device'),
+            'push_code'=>$request->header('pushcode')
         ];//更新登录记录
 
         $userInfoObj->alterUserBase($tempData,$userId);//更新登录信息

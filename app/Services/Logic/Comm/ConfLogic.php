@@ -22,7 +22,7 @@ class ConfLogic extends HandleLogic
     protected $redisPrefix = "Conf:";
     protected $redisTtl = 86400;
     /*
-         * 1.广告招商 2. 下载本站 3.关于我们 4.友情链接 5.隐私条款 6.磁链使用教程*/
+         * 1.广告招商 2. 下载本站 3.关于我们 4.友情链接 5.隐私条款 6.磁链使用教程，7.评论说明，8.首次登陆提示，9.app分享说明*/
 
 
     protected  $keyMap = [
@@ -33,6 +33,8 @@ class ConfLogic extends HandleLogic
         5=>'private_item',
         6=>'magnet_link',
         7=>'comment_notes',
+        8=>'first_login',
+        9=>'app_share',
     ];
 
     /**
@@ -99,6 +101,12 @@ class ConfLogic extends HandleLogic
             'comment_notes'=>[
                 'isopen'=>0,
                 'countdown'=>0,
+                'content'=>'',
+            ],
+            'first_login'=>[
+                'content'=>'',
+            ],
+            'app_share'=>[
                 'content'=>'',
             ],
         ];

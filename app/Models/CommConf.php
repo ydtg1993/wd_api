@@ -23,7 +23,7 @@ class CommConf extends Model
 
     public static function getAllConf( ): array
     {
-            $list = static::whereIn('type',[1,2,3,4,5,6,7])->select('type','values')->orderBy('type','asc')->get();
+            $list = static::select('type','values')->orderBy('type','asc')->get();
             if($list->isEmpty()){
                 return [];
             }
