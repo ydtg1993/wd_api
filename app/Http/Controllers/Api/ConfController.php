@@ -67,5 +67,33 @@ class ConfController extends BaseController
             return $this->sendError($e->getMessage(),$this->errCode);
         }
     }
+    /**
+     * @param Request $request
+     */
+    public function getLogin(Request $request)
+    {
+
+        try {
+            $data = $this->confLogic->getConfByType(8);
+            return $this->sendJson($data);
+        }catch (\Exception $e){
+            Log::error($e->getMessage().'_'.$e->getFile().'_'.$e->getLine());
+            return $this->sendError($e->getMessage(),$this->errCode);
+        }
+    }
+    /**
+     * @param Request $request
+     */
+    public function appShare(Request $request)
+    {
+
+        try {
+            $data = $this->confLogic->getConfByType(9);
+            return $this->sendJson($data);
+        }catch (\Exception $e){
+            Log::error($e->getMessage().'_'.$e->getFile().'_'.$e->getLine());
+            return $this->sendError($e->getMessage(),$this->errCode);
+        }
+    }
 
 }
