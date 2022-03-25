@@ -131,7 +131,7 @@ class MovieComment extends Model
     }
 
     /**
-     * 读取数据 
+     * 读取数据
      */
     public function info($uid=0, $mid=0)
     {
@@ -141,7 +141,7 @@ class MovieComment extends Model
     }
 
     /**
-     * 根据id读取 
+     * 根据id读取
      */
     public static function infoById($id)
     {
@@ -172,7 +172,8 @@ class MovieComment extends Model
             $cid = join(',', $ids);
             $wh .= ' cid in ('.$cid.') and ';
         }
-        $wh .= " comment<>'' and status = 1 and audit = 1 ";
+        //$wh .= " comment<>'' and status = 1 and audit = 1 ";
+        $wh .= " comment<>'' and status = 1 ";
 
         $res = DB::select('select '.$fields.' from '.$this->table.' where '.$wh.' order by '.$orderby.' limit '.$offset.','.$limit.';');
 

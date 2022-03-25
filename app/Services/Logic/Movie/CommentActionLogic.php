@@ -15,6 +15,7 @@ use App\Events\UserEvent\UserLikeEvent;
 use App\Events\UserEvent\UserReplyEvent;
 use App\Events\UserEvent\UserReportEvent;
 use App\Models\MovieComment;
+use App\Models\UserLikeComment;
 use App\Services\Logic\BaseLogic;
 use App\Services\Logic\Common;
 use Illuminate\Support\Facades\App;
@@ -35,6 +36,11 @@ class CommentActionLogic extends BaseLogic
             return -1;
         }
         MovieComment::where('id','=',$data['id'])->increment($data['action'],1);
+        UserLikeComment::insert([
+            'uid'=>$data['uid'],
+            'cid'=>$data['id'],
+            'type' => $data['action']=='like'?1:2
+        ]);
         if($data['uid'] <=0 ){//过滤机器评论
             return true;
         }
