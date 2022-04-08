@@ -22,19 +22,11 @@ class Movie extends Model
      */
     public function getMovieListByCache($data, $isCache)
     {
-        $page = $data['page']??1;
-        $pageSize = $data['pageSize']??12;
-        $cid = $data['cid']??0;
-
-        $reData = RedisCache::getCacheDataOnly('movie','movie:category:list:',['home_type'=>$data['home_type'],'cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
-        if(!$reData){
-            //标签走另外的函数
-            if($data['home_type']==5){
-                $reData = self::getMovieListBylabel($data);
-            }else{
-                $reData = self::getMovieList($data);
-            }
-            RedisCache::setCacheDataOnly('movie','movie:category:list:',$reData,['home_type'=>$data['home_type'],'cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
+        //标签走另外的函数
+        if ($data['home_type'] == 5) {
+            $reData = self::getMovieListBylabel($data);
+        } else {
+            $reData = self::getMovieList($data);
         }
         return $reData;
     }
@@ -137,7 +129,7 @@ class Movie extends Model
     public static function getMovieListBylabel($data)
     {
         $page = $data['page'] ?? 1;
-        $pageSize = $data['pageSize'] ?? 10;
+        $pageSize = $data['pageSize'] == 12 ? 12:10;
         $lid = $data['cid'] ?? 0;
         $gid = $data['gid'] ?? 0;
 

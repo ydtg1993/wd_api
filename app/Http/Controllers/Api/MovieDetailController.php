@@ -214,7 +214,7 @@ class MovieDetailController extends BaseController
             $MC = new MovieComment();
             $sum = $MC->getListCount($mid, 1, []);
 
-            $comments = $MC->getLists($mid, 1, [], $offset, $pageSize, 'id desc', 'id,mid,uid,comment,score,type,source_type,nickname,avatar,reply_uid,`like`,dislike,comment_time');
+            $comments = $MC->getLists($mid, 1, [], $offset, $pageSize, 'id desc', 'id,mid,uid,comment,score,type,source_type,nickname,avatar,reply_uid,`like`,`m_like`,dislike,`m_dislike`,comment_time');
 
             //遍历数据，获取需要子查询的数据
             $uids = [];   //需要查询的用户id
@@ -225,7 +225,7 @@ class MovieDetailController extends BaseController
             }
 
             //读取回复的评论数据(系统只支持第一层，不支持无限递归)
-            $replyComments = Common::objectToArray($MC->getLists(0, 2, $cids, 0, 200, 'id asc', 'id,cid,uid,comment,score,type,source_type,nickname,avatar,reply_uid,`like`,dislike,comment_time'));
+            $replyComments = Common::objectToArray($MC->getLists(0, 2, $cids, 0, 200, 'id asc', 'id,cid,uid,comment,score,type,source_type,nickname,avatar,reply_uid,`like`,`m_like`,dislike,`m_dislike`,comment_time'));
             $replyArr = [];    //回复的列表
             foreach($replyComments as $v){
                 $uids[] = $v['uid'];
