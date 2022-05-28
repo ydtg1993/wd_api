@@ -53,6 +53,7 @@ class CodeServiceWithDb{
         if(!$res) {
             return false;
         }
+        
         if(time() - $res->timestamp >= self::CODE_MAX_TIME){
             return -1;
         }

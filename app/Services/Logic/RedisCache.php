@@ -192,4 +192,22 @@ class RedisCache
         return $res;
     }
 
+    /**
+     * 写入一个字符串到redis
+    */
+    public static function addString($key,$val='')
+    {
+        $res = Redis::command('SET',[$key,$val]);
+        return $res;
+    }
+
+    /**
+     * 读取一个字符串 
+    */
+   public static function getString($key)
+   {
+        $res = Redis::command('GET',[$key]);
+        return $res;
+   } 
+
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -16,11 +17,16 @@ class ActorPopularityChart extends Model
         $page = $data['page'] ?? 1;
         $pageSize = $data['pageSize'] ?? 10;
         $type = $data['type'] ?? 0;// 0.全部、1.有码、2.无码、3.欧美
-        $time = $data['time'] ?? (time());// 时间戳
+        if(isset($data['time'])){
+            $time = strtotime('+1 month',$data['time']);
+        }else{
+            $time = time();
+        }
 
         $reData = ['list' => [], 'sum' => 0, 'cache' => 0];
-
-        $cache = "Rank:actor:rank:{$type}";
+        $this_month = date('Y-m-01 00:00:00', $time);//本月时间
+        $this_month_key = date('Y-m',$time);
+        $cache = "Rank:actor:rank:{$type}:{$this_month_key}";
         $record = Redis::get($cache);
         if ($record) {
             $record = (array)json_decode($record, true);
@@ -30,45 +36,57 @@ class ActorPopularityChart extends Model
             return $reData;
         }
 
-        $time = $time + (60 * 60 * 24);//加一天时间戳防止时区影响
-        $log = new ActorPopularityChart();
-        $type > 0 ? ($log = $log->where('cid', $type)) : null;
-
-        $log = $log->where('mtime', '>=', date('Y-m-01 00:00:00', $time))
-            ->where('mtime', '<', date('Y-m-d 00:00:00', strtotime(date('Y-m-01', $time) . ' +1 month')))
-            ->orderBy('hot_val', 'desc')
-            ->orderBy('up_mhot', 'desc');
-
-        $reData['sum'] = DB::table(DB::raw("({$log->toSql()}) as log"))
-            ->mergeBindings($log->getQuery())
-            ->count();
-
-        $browseList = $log->offset(($page - 1) * $pageSize)
-            ->limit($pageSize)->get()
-            ->pluck('aid')
-            ->toArray();
-
-        $browseListTemp = [];
-        foreach ($browseList as $val) {
-            $browseListTemp[] = $val;
+        $actors = ActorPopularityChart::join('movie_actor', 'actor_popularity_chart.aid', '=', 'movie_actor.id')
+            ->whereIn('movie_actor.sex', ['♀',''])
+            ->where('actor_popularity_chart.cid', $type)
+            ->where('actor_popularity_chart.mtime', $this_month)
+            ->orderBy('actor_popularity_chart.hot_val', 'desc')
+            ->orderBy('actor_popularity_chart.up_mhot', 'desc')
+            ->orderBy('movie_actor.id', 'desc')
+            ->offset(0)
+            ->limit(100)
+            ->select('movie_actor.*',
+                'actor_popularity_chart.new_movie_count',
+                'actor_popularity_chart.new_movie_pv',
+                'actor_popularity_chart.new_movie_want',
+                'actor_popularity_chart.new_movie_seen',
+                'actor_popularity_chart.new_movie_score',
+                'actor_popularity_chart.new_movie_score_people')
+            ->get()->toArray();
+        $total = count($actors);
+        if($total<100){
+            $rest = 100 - $total;
+            $records = ActorPopularityChart::join('movie_actor', 'actor_popularity_chart.aid', '=', 'movie_actor.id')
+                ->where('actor_popularity_chart.cid', $type)
+                ->whereIn('movie_actor.sex', ['♀',''])
+                ->whereNotIn('movie_actor.id', array_column($actors,'id'))
+                ->whereBetween('actor_popularity_chart.mtime',[date('Y-01-01 00:00:00', time()),date('Y-m-01 00:00:00', strtotime('-1 month'))])
+                ->orderBy('actor_popularity_chart.hot_val', 'desc')
+                ->orderBy('actor_popularity_chart.up_mhot', 'desc')
+                ->orderBy('movie_actor.id', 'desc')
+                ->offset(0)
+                ->limit($rest)
+                ->select('movie_actor.*',
+                    'actor_popularity_chart.new_movie_count',
+                    'actor_popularity_chart.new_movie_pv',
+                    'actor_popularity_chart.new_movie_want',
+                    'actor_popularity_chart.new_movie_seen',
+                    'actor_popularity_chart.new_movie_score',
+                    'actor_popularity_chart.new_movie_score_people')
+                ->get()->toArray();
+            $actors = array_merge($actors,$records);
         }
-
-        $browseList = $browseListTemp;
-        if (is_array($browseList) || count($browseList) > 0) {
-            $MovieList = MovieActor::whereIn('id', $browseList)->get();
-            $tempMovie = [];
-
-            foreach ($MovieList as $val) {
-                $tempMovie[$val['id'] ?? 0] = MovieActor::formatList($val);//格式化演员数据
-            }
-            $rank = ($page - 1) * 10;
-            foreach ($browseList as $val) {
-                $rank++;
-                $temp = $tempMovie[$val] ?? [];
-                $temp['rank'] = $rank;
-                $reData['list'][] = $temp;
-            }
+        $i = 1;
+        $temp = [];
+        foreach ($actors as $val) {
+            $actor = MovieActor::formatList((array)$val,true);
+            $actor['rank'] = $i;
+            $i++;
+            $temp[] = $actor;
         }
+        $reData['sum'] = count($temp);
+        $reData['list'] = $temp;
+        Redis::setex($cache, 3600 * 48, json_encode($reData));
 
         return $reData;
     }

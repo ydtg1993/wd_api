@@ -95,14 +95,14 @@ class Movie extends Model
             $rows = DB::select('select id,name,number,release_time,created_at
                 ,is_download,is_subtitle,is_short_comment,is_hot
                 ,new_comment_time,flux_linkage_time,comment_num,score
-                ,small_cover,big_cove
+                ,small_cover,big_cove,score_people,wan_see,seen
                 from movie
                 where ' . $where . '
                 order by ' . $orderby . ' limit ' . $offset . ',' . $limit . ';');
             //加工数据
             $rows = Common::objectToArray($rows);
             foreach ($rows as $v) {
-                $res[] = Movie::formatList($v);
+                $res[] = Movie::formatList($v,true);
             }
             Redis::setex($cache, 7200, json_encode($res));
         } else {
@@ -235,7 +235,7 @@ class Movie extends Model
      * 格式化影片列表数据
      * @param array $data
      */
-    public static function formatList($data = [])
+    public static function formatList($data = [],$addInfo=false)
     {
         $is_new_comment_day = ((strtotime($data['new_comment_time'] ?? '') - strtotime(date('Y-m-d 00:00:00'))) >= 0) ? 1 : 2;//最新评论时间减去 今日开始时间 如果大于0 则今日新评论
         $is_new_comment_day = ($is_new_comment_day == 2) ? (
@@ -268,7 +268,14 @@ class Movie extends Model
         $reData['small_cover'] = $small_cover == '' ? '' : (Common::getImgDomain() . $small_cover);
 
         $reData['big_cove'] = $big_cove == '' ? '' : (Common::getImgDomain() . $big_cove);
-        $reData['is_short_comment'] = $data['is_short_comment'] ?? 0;;
+        $reData['is_short_comment'] = $data['is_short_comment'] ?? 0;
+
+        if($addInfo){
+            $reData['info']['score_people'] = $data['score_people'];
+            $reData['info']['wan_see'] = $data['wan_see'];
+            $reData['info']['seen'] = $data['seen'];
+            $reData['info']['pv'] = DB::table('movie_log')->where('mid', $data['id'])->count();
+        }
 
         return $reData;
     }

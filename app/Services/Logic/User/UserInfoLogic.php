@@ -29,7 +29,7 @@ class UserInfoLogic extends BaseLogic
      * @param $pwd
      * @param $code
      */
-    public function registerPhone($phone,$pwd,$code)
+    public function registerPhone($phone,$pwd,$code,$regDevice,$pushCode)
     {
         $ret = App::make('CodeServiceWithDb')->checkCode($phone,'phone',$code);
         if($ret<=0){
@@ -46,7 +46,7 @@ class UserInfoLogic extends BaseLogic
             $this->errorInfo->setCode(500,'密码太简单了！不能少于8位密码！');
             return false;
         }
-        $data = ['phone' =>$phone,'pwd' =>$pwd,'le_phone_status'=>UserClient::PHONE_VER_STATUS_YES];
+        $data = ['phone' =>$phone,'pwd' =>$pwd,'le_phone_status'=>UserClient::PHONE_VER_STATUS_YES,'reg_device'=>$regDevice,'push_code'=>$pushCode];
         $userId = $this->addUser($data);
         if($userId == false)
         {
@@ -68,7 +68,7 @@ class UserInfoLogic extends BaseLogic
      * @param $pwd
      * @param $code
      */
-    public function registerEmail($email,$pwd,$code)
+    public function registerEmail($email,$pwd,$code,$regDevice='web',$pushCode='')
     {
         $ret = App::make('CodeServiceWithDb')->checkCode($email,'email',$code);
         if($ret<=0){
@@ -86,7 +86,7 @@ class UserInfoLogic extends BaseLogic
             return false;
         }
 
-        $data = ['email' =>$email,'pwd' =>$pwd,'le_email_status'=>UserClient::EMAIL_VER_STATUS_YES];
+        $data = ['email' =>$email,'pwd' =>$pwd,'le_email_status'=>UserClient::EMAIL_VER_STATUS_YES,'reg_device'=>$regDevice,'push_code'=>$pushCode];
         $userId = $this->addUser($data);
         if($userId == false)
         {
@@ -151,6 +151,9 @@ class UserInfoLogic extends BaseLogic
         $userObj->le_phone_status = $data['le_phone_status']??UserClient::PHONE_VER_STATUS_NO;
         $userObj->le_email_status = $data['le_email_status']??UserClient::EMAIL_VER_STATUS_NO;
         $userObj->nickname = (empty($data['nickname'])? (UserClient::DEFAULT_USER_NAME.Common::random_str(4)):$data['nickname']??'');
+        $userObj->reg_device = $data['reg_device']??'';
+        $userObj->login_device = $data['reg_device']??'';
+        $userObj->push_code = $data['push_code']??'';
         $userObj->save();
         return $userObj->id;
 
@@ -394,6 +397,9 @@ class UserInfoLogic extends BaseLogic
         (!empty($data['age']))?$userBase->age = ($data['age']??''):null;
         (!empty($data['login_time']))?$userBase->login_time = ($data['login_time']??''):null;
         (!empty($data['login_ip']))?$userBase->login_ip = ($data['login_ip']??''):null;
+
+        (!empty($data['login_device']))?$userBase->login_device = ($data['login_device']??''):'web';
+        (!empty($data['push_code']))?$userBase->push_code = ($data['push_code']??''):'web';
         $userBase->save();
 
         $userInfo = $this->refreshUserCache($userBase->id);//刷新用户相关缓存

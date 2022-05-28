@@ -156,7 +156,7 @@ class Common
     public static function verifCodePhone($phone,$code)
     {
         //TODO
-        return true;
+        //return true;
 
         //验证成功则删除验证码 不成功不删除
         $key = 'userinfo:phone:verif:code:';
@@ -194,7 +194,7 @@ class Common
     public static function verifCodeEmail($phone,$code)
     {
         //TODO
-        return true;
+        //return true;
 
         //验证成功则删除验证码 不成功不删除
         $key = 'userinfo:email:verif:code:';

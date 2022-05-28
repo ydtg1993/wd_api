@@ -313,7 +313,7 @@ class AttentionLogic extends HomeBaseLogic
                 $MovieInfo = Movie::whereIn('id',$midsInfo)->get();
                 foreach ($MovieInfo as $val)
                 {
-                    $reData[] = Movie::formatList($val);
+                    $reData[] = Movie::formatList($val,true);
                 }
             }
 

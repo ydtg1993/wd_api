@@ -117,10 +117,11 @@ class MovieComment extends Model
                                         ->update(['status'=>2]);
         //更新评论统计数据
         $commentNum = MovieComment::where('mid',$mid)->where('status',1)->count();
+        $comment = MovieComment::where(['mid'=>$mid,'status'=>1])->orderBy('comment_time','DESC')->select('comment_time')->first();
         Movie::where('id',$mid)->update([
             'comment_num' =>$commentNum,
             'is_short_comment'=>($commentNum<=0?1:2),
-            'new_comment_time'=>date('Y-m-d H:i:s',time())
+            'new_comment_time'=> $comment ? $comment->comment_time : '2022-01-01'
         ]);
 
         //加权分，删除评论，减1分

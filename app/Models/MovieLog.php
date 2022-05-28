@@ -31,52 +31,70 @@ class MovieLog extends Model
         return $movieObj->id;
     }
 
-    public static function getRankingVersion($data)
+    public static function getRankingVersion($type, $time)
     {
-        $page = $data['page'] ?? 1;
-        $pageSize = $data['pageSize'] ?? 10;
-        $type = $data['type'] ?? 0;// 0.全部、1.有码、2.无码、3.欧美
-        $time = $data['time'] ?? 0;// 0.全部、1.日版、2.周榜、3.月榜
-
-        $reData = ['list' => [], 'sum' => 0, 'cache' => 0];
-
-        $cache = "Rank:movie:rank:{$type}:{$time}";
-        $record = Redis::get($cache);
-        if ($record) {
-            $record = (array)json_decode($record,true);
-            $reData['list'] = array_slice($record['list'],($page-1)*$pageSize,$pageSize);
-            $reData['sum'] = $record['sum'];
-            $reData['cache'] = 1;
-            return $reData;
+        $reData = ['list' => [], 'sum' => 0];
+        $t = time();
+        $M = MovieLog::where('cid', $type);
+        switch ($time) {
+            case 1:
+                $today = date('Y-m-d 00:00:00', $t);
+                $yesterday = date('Y-m-d 00:00:00', strtotime("-1 days", $t));
+                $M = $M->whereBetween('created_at', [$yesterday, $today]);
+                break;
+            case 2:
+                $M = $M->where('created_at', '>=', date('Y-m-d 00:00:00', strtotime('this week', $t)));
+                break;
+            case 3:
+                $M = $M->where('created_at', '>=', date('Y-m-01 00:00:00', $t));
+                break;
         }
+        $M = $M->selectRaw('count(mid) as num,mid')->groupBy('mid');
+        $browseList = $M->orderBy('num', 'desc')->offset(0)->limit(100)->get()->pluck('mid')->all();
 
-        $log = new MovieLog();
-        $type > 0 ? ($log = $log->where('cid', $type)) : null;
-        if ($time > 0) {
-            $time == 1 ? ($log = $log->where('created_at', '>=', date('Y-m-d 00:00:00', time()))) : null;
-            $time == 2 ? ($log = $log->where('created_at', '>=', (date('Y-m-d 00:00:00', strtotime('-' . (date('w', time()) - 1) . ' days', time()))))) : null;
-            $time == 3 ? ($log = $log->where('created_at', '>=', date('Y-m-01 00:00:00', time()))) : null;
-        }
-        $log = $log->selectRaw('count(mid) as num,mid')->groupBy('mid');
-
-        $reData['sum'] = $log->offset(0)->limit(100)->get()->count();
-        $browseList = $log->orderBy('num', 'desc')->offset(($page - 1) * $pageSize)->limit($pageSize)->get()->pluck('mid')->toArray();
-
-        if (is_array($browseList) || count($browseList) > 0) {
-            $MovieList = Movie::whereIn('id', $browseList)->get();
-            $tempMovie = [];
-
-            foreach ($MovieList as $val) {
-                $tempMovie[$val['id'] ?? 0] = Movie::formatList($val);//格式化视频数据
+        if (count($browseList) < 100) {
+            $M2 = MovieLog::where('cid', $type);
+            $M2 = $M2->whereNotIn('id',$browseList);
+            $rest = 100 - count($browseList);
+            $t = $t - 86400 * 30;
+            switch ($time) {
+                case 1:
+                    $today = date('Y-m-d 00:00:00', $t);
+                    $yesterday = date('Y-m-d 00:00:00', strtotime("-3 days", $t));
+                    $M2 = $M2->whereBetween('created_at', [$yesterday, $today]);
+                    break;
+                case 2:
+                    $M2 = $M2->whereBetween('created_at', [
+                        date('Y-m-d 00:00:00', strtotime('this week', $t)),
+                        date('Y-m-d 00:00:00', strtotime('next week', $t))
+                    ]);
+                    break;
+                case 3:
+                    $M2 = $M2->where('created_at', '>=', date('Y-m-01 00:00:00', $t));
+                    break;
             }
-            $rank = ($page - 1) * 10;
-            foreach ($browseList as $val) {
-                $rank++;
-                $temp = $tempMovie[$val] ?? [];
-                $temp['rank'] = $rank;
-                $reData['list'][] = $temp;
-            }
+            $M2 = $M2->selectRaw('count(mid) as num,mid')->groupBy('mid');
+            $reData['sum'] += $M2->offset(0)->limit($rest)->get()->count();
+            $browseList += $M2->orderBy('num', 'desc')->offset(0)->limit($rest)->get()->pluck('mid')->toArray();
         }
-        return (is_array($reData) || count($reData) > 0) ? $reData : [];
+        $MovieList = Movie::whereIn('id', $browseList)->get();
+        $tempMovie = [];
+        foreach ($MovieList as $val) {
+            $data = Movie::formatList($val);//格式化视频数据
+            $data['score_people'] = $val['score_people'];
+            $data['wan_see'] = $val['wan_see'];
+            $data['seen'] = $val['seen'];
+            $data['pv'] = DB::table('movie_log')->where('mid', $val['id'])->count();
+            $tempMovie[$val['id'] ?? 0] = $data;
+        }
+        $rank = 0;
+        foreach ($browseList as $val) {
+            $rank++;
+            $temp = $tempMovie[$val] ?? [];
+            $temp['rank'] = $rank;
+            $reData['list'][] = $temp;
+        }
+        $reData['sum'] = count($reData['list']);
+        return $reData;
     }
 }

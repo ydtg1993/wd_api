@@ -75,7 +75,7 @@ class LabelController extends BaseController
         }
         array_shift($data);
 
-        return Response::json(['code'=>200,'msg'=>'操作成功','data'=>$data]);
+        return Response::json(['code'=>200,'msg'=>'操作成功','data'=>Common::objectToArray($data)]);
     }
 
     /**
@@ -104,6 +104,6 @@ class LabelController extends BaseController
             }
         }
 
-        return Response::json(['code'=>200,'msg'=>'操作成功','data'=>$data]);
+        return Response::json(['code'=>200,'msg'=>'操作成功','data'=>Common::objectToArray($data)]);
     }
 }

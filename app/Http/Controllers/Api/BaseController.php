@@ -54,7 +54,7 @@ class BaseController extends Controller
             'code' => $code,
             'msg' => $msg == ''?(isset(BaseError::$msgCode[$code])?BaseError::$msgCode[$code]:'未知错误'):$msg,
             'warning'=>$warning,
-            'data' =>  is_string($data)?$data:(object)$data
+            'data' =>  is_string($data)?$data:Common::objectToArray($data)
         ];
         //数据返回
         return response()->json($reData ?? [],200);
@@ -71,7 +71,7 @@ class BaseController extends Controller
         $reData  = [
             'code' => $code,//控制状态
             'msg' => $msg == ''?(isset(BaseError::$msgCode[$code])?BaseError::$msgCode[$code]:'未知错误'):$msg,
-            'data' => (object)$data
+            'data' => Common::objectToArray($data)
         ];
         //数据返回
         return response()->json($reData ?? [],200);

@@ -76,6 +76,12 @@ return [
             'url' => env('AWS_URL'),
         ],
 
+        'admin' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'visibility' => 'public',
+            'url' => env('IMAGE_DOMAIN', ''),
+        ],
     ],
 
     //avatar 默认头像路径

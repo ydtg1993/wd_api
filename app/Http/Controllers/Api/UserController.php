@@ -362,9 +362,9 @@ class UserController extends  BaseController
             $pwd = 'aa123456';
             if($ty=='phone')
             {
-                $userInfo = $userInfoObj->registerPhone($account,$pwd,$code);
+                $userInfo = $userInfoObj->registerPhone($account,$pwd,$code,$regDevice,$pushCode);
             }else{
-                $userInfo = $userInfoObj->registerEmail($account,$pwd,$code);
+                $userInfo = $userInfoObj->registerEmail($account,$pwd,$code,$regDevice,$pushCode);
             }
 
             $userId = $userInfo['userId'];

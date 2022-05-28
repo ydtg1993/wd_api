@@ -14,6 +14,8 @@ use App\Models\Movie;
 use App\Services\Logic\Home\HomeLogic;
 use App\Services\Logic\Search\SearchLogic;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
+
 class HomeController extends BaseController
 {
 
@@ -51,7 +53,22 @@ class HomeController extends BaseController
     public function rank(Request $request)
     {
         $data = $request->input();
-        return $this->sendJson((MovieLog::getRankingVersion($data)));
+
+        $page = $data['page'] ?? 1;
+        $pageSize = $data['pageSize'] ?? 10;
+        $type = $data['type'] ?? 0;// 0.全部、1.有码、2.无码、3.欧美
+        $time = $data['time'] ?? 0;// 0.全部、1.日版、2.周榜、3.月榜
+        $reData = ['list' => [], 'sum' => 0, 'cache' => 0];
+
+        $cache = "Rank:movie:rank:{$type}:{$time}";
+        $record = Redis::get($cache);
+        if ($record) {
+            $record = (array)json_decode($record,true);
+            $reData['list'] = array_slice($record['list'],($page-1)*$pageSize,$pageSize);
+            $reData['sum'] = $record['sum'];
+            $reData['cache'] = 1;
+        }
+        return $this->sendJson($reData);
     }
 
     /**
