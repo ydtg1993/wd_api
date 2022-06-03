@@ -12,4 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 class UserLikeComment extends Model
 {
     protected $table = 'user_like_comment';
+
+    public function user_client()
+    {
+        return $this->belongsTo(UserClient::class, 'uid', 'id');
+    }
 }

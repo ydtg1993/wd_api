@@ -66,7 +66,7 @@ class MovieComment extends Model
         $commentObj->save();
 
         //更新评论统计数据
-        $commentNum = MovieComment::where('mid',$mid)->where('status',1)->count();
+        $commentNum = MovieComment::where(['mid'=>$mid,'status'=>1,'type'=>1,'source_type'=>1])->count();
         Movie::where('id',$mid)->update([
             'comment_num' =>$commentNum,
             'is_short_comment'=>($commentNum<=0?1:2),
@@ -263,5 +263,25 @@ class MovieComment extends Model
 		$avatar = $struct['avatar'];
         $struct['avatar'] = (filter_var($avatar, FILTER_VALIDATE_URL) !== false)?$struct['avatar']:(($struct['avatar'] == '')?'':Common::getImgDomain().$struct['avatar']);
         return $struct;
+    }
+
+    public function movie()
+    {
+        return $this->belongsTo(Movie::class, 'mid', 'id');
+    }
+
+    public function user_client()
+    {
+        return $this->belongsTo(UserClient::class, 'uid', 'id');
+    }
+
+    public function user_lock()
+    {
+        return $this->belongsTo(UserLock::class, 'uid', 'id');
+    }
+
+    public function comments()
+    {
+        return $this->belongsTo(UserLikeComment::class, 'id', 'cid');
     }
 }

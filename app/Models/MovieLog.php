@@ -74,7 +74,6 @@ class MovieLog extends Model
                     break;
             }
             $M2 = $M2->selectRaw('count(mid) as num,mid')->groupBy('mid');
-            $reData['sum'] += $M2->offset(0)->limit($rest)->get()->count();
             $browseList += $M2->orderBy('num', 'desc')->offset(0)->limit($rest)->get()->pluck('mid')->toArray();
         }
         $MovieList = Movie::whereIn('id', $browseList)->get();

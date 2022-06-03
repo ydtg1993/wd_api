@@ -53,29 +53,7 @@ class ActorPopularityChart extends Model
                 'actor_popularity_chart.new_movie_score',
                 'actor_popularity_chart.new_movie_score_people')
             ->get()->toArray();
-        $total = count($actors);
-        if($total<100){
-            $rest = 100 - $total;
-            $records = ActorPopularityChart::join('movie_actor', 'actor_popularity_chart.aid', '=', 'movie_actor.id')
-                ->where('actor_popularity_chart.cid', $type)
-                ->whereIn('movie_actor.sex', ['♀',''])
-                ->whereNotIn('movie_actor.id', array_column($actors,'id'))
-                ->whereBetween('actor_popularity_chart.mtime',[date('Y-01-01 00:00:00', time()),date('Y-m-01 00:00:00', strtotime('-1 month'))])
-                ->orderBy('actor_popularity_chart.hot_val', 'desc')
-                ->orderBy('actor_popularity_chart.up_mhot', 'desc')
-                ->orderBy('movie_actor.id', 'desc')
-                ->offset(0)
-                ->limit($rest)
-                ->select('movie_actor.*',
-                    'actor_popularity_chart.new_movie_count',
-                    'actor_popularity_chart.new_movie_pv',
-                    'actor_popularity_chart.new_movie_want',
-                    'actor_popularity_chart.new_movie_seen',
-                    'actor_popularity_chart.new_movie_score',
-                    'actor_popularity_chart.new_movie_score_people')
-                ->get()->toArray();
-            $actors = array_merge($actors,$records);
-        }
+
         $i = 1;
         $temp = [];
         foreach ($actors as $val) {
