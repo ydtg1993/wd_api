@@ -146,9 +146,9 @@ function componentSelect(name,selected,options) {
             val += parseInt(n.getAttribute('data-id'))+",";
         });
         val = val.replace(/,$/g, '');
-        document.getElementById(name).setAttribute('data',val);
+        dataInput.value = val
     }
-
+    var DOM = document.getElementById(name);
     var selected_dom = '';
     var options_dom = '';
     var selected_tag = '';
@@ -172,7 +172,14 @@ function componentSelect(name,selected,options) {
         options_dom +
         '</div>' +
         '</div>';
-    document.getElementById(name).innerHTML = html;
+    DOM.innerHTML = html;
+    /*hidden data container*/
+    var dataInput = document.createElement('input');
+    dataInput.setAttribute('name',name);
+    dataInput.setAttribute('type','hidden');
+    dataInput.value = '';
+    DOM.appendChild(dataInput);
+
     _componentCommonBlock._nodesBindEvent(document.getElementById(name+'-select').getElementsByClassName("v-tag"),'click',tagCancel);
     _componentCommonBlock._nodesBindEvent(document.getElementById(name+'-content').getElementsByClassName("v-tag"),'click',tagSelect);
     document.getElementById(name+'-search').addEventListener('input',function () {
@@ -197,17 +204,16 @@ function componentJsonTable(name,columns,data) {
                 break;
             case 'input':
                 let input = document.createElement('input');
-                input.setAttribute('name',name+'_'+column);
                 input.setAttribute('class','form-control');
                 input.setAttribute('data-column',column);
                 input.value = value;
                 input.addEventListener('input',function () {
                     let key = this.parentNode.parentNode.getAttribute('data-key');
                     let column = this.getAttribute('data-column');
-                    let data = JSON.parse(dom.getAttribute('data'));
+                    let data = JSON.parse(dataInput.value);
                     if(data[key]){
                         data[key][column] = this.value;
-                        dom.setAttribute('data',JSON.stringify(data));
+                        dataInput.value = JSON.stringify(data);
                     }
                 });
                 td.appendChild(input);
@@ -224,12 +230,12 @@ function componentJsonTable(name,columns,data) {
         i.addEventListener('click',function(){
             let tr = this.parentNode.parentNode;
             let tbody = tr.parentNode;
-            let data = JSON.parse(dom.getAttribute('data'));
+            let data = JSON.parse(dataInput.value);
             let key = tr.getAttribute('data-key');
 
             data.splice(key,1);
             tbody.removeChild(tr);
-            dom.setAttribute('data',JSON.stringify(data));
+            dataInput.value = JSON.stringify(data);
             for(let node in tbody.childNodes){
                 if (tbody.childNodes[node] instanceof HTMLElement) {
                     tbody.childNodes[node].setAttribute('data-key', node);
@@ -241,7 +247,6 @@ function componentJsonTable(name,columns,data) {
     }
     /*head foot*/
     var dom = document.getElementById(name);
-    dom.setAttribute('data','[]');
     var head = '<tr style="display:table;width:100%;table-layout:fixed;">';
     var foot = head;
     for (let column in columns){
@@ -251,12 +256,12 @@ function componentJsonTable(name,columns,data) {
         if(columns[column].style){
             head += '<th style="'+columns[column].style+'">'+columns[column].name+'</th>';
             foot += '<th style="'+columns[column].style+'">' +
-                '<input class="form-control" data-column="'+column+'" name="'+name+'_'+column+'" placeholder="添加:'+columns[column].name+'"/></th>';
+                '<input class="form-control" data-column="'+column+'" placeholder="添加:'+columns[column].name+'"/></th>';
             continue;
         }
         head += '<th>'+columns[column].name+'</th>';
         foot += '<th>' +
-            '<input class="form-control" data-column="'+column+'" name="'+name+'_'+column+'" placeholder="添加:'+columns[column].name+'"/></th>';
+            '<input class="form-control" data-column="'+column+'" placeholder="添加:'+columns[column].name+'"/></th>';
     }
     head += '<th style="width: 30px"></th></tr>';
     foot += '<th style="width: 30px" class="JsonTableInsert"></th></tr>';
@@ -264,6 +269,12 @@ function componentJsonTable(name,columns,data) {
     dom.innerHTML = '<style>#'+name+' tbody::-webkit-scrollbar { width: 0 !important }</style>' +
         '<table class="table table-striped table-bordered table-hover table-responsive">'+
         '<thead>'+head+'</thead></table>';
+    /*hidden data container*/
+    var dataInput = document.createElement('input');
+    dataInput.setAttribute('name',name);
+    dataInput.setAttribute('type','hidden');
+    dataInput.value = '[]';
+    dom.appendChild(dataInput);
     /*tbody list*/
     var records = [];
     var tbody = document.createElement('tbody');
@@ -300,7 +311,7 @@ function componentJsonTable(name,columns,data) {
             tbody.setAttribute('style','display:block;max-height:270px;overflow-y:scroll');
             tbody.appendChild(tr);
             records.push(record);
-            dom.setAttribute('data',JSON.stringify(records));
+            dataInput.value = JSON.stringify(records);
         }
     });
 
@@ -315,7 +326,7 @@ function componentJsonTable(name,columns,data) {
     i.setAttribute('class','fa fa-edit');
     i.style = 'cursor: pointer';
     i.addEventListener('click',function () {
-        let data = JSON.parse(dom.getAttribute('data'));
+        let data = JSON.parse(dataInput.value);
         let inputs = dom.getElementsByTagName('tfoot')[0].getElementsByTagName('input');
         let insert = {};
         let tr = document.createElement('tr');
@@ -339,7 +350,7 @@ function componentJsonTable(name,columns,data) {
         tr.appendChild(td);
         tbody.appendChild(tr);
         data.push(insert);
-        dom.setAttribute('data',JSON.stringify(data));
+        dataInput.value = JSON.stringify(data);
         tbody.scrollTop = tbody.scrollHeight;
     });
     dom.getElementsByClassName('JsonTableInsert')[0].appendChild(i);
@@ -383,7 +394,7 @@ let componentForm = {
         for (var key of formdata.keys()) {
             console.log(key);
         }
-        console.log(formdata.get('name'))
+        console.log(formdata)
     }
 };
 
