@@ -20,22 +20,24 @@ let _componentCommonBlock = {
             element.addEventListener(event,func);
         }
     },
-    _request: function (url,callback) {
-        //loading
-        var thisObj = this;
-        this._loading();
+    _request: function (url,method="GET",data={},callback=function(){}) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", url, true);
+        xhr.open(method, url, true);
         xhr.timeout = 30000;
-        xhr.responseType = "json";
         var token= document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         xhr.setRequestHeader("Content-type", "application/text;charset=UTF-8");
         xhr.setRequestHeader("X-CSRF-TOKEN", token);
-        xhr.send(null);
+        if(method == 'GET'){
+            xhr.responseType = "text";
+            xhr.send(null);
+        }else {
+            xhr.responseType = "json";
+            xhr.send(JSON.stringify(data));
+        }
         xhr.onreadystatechange = function () {
             if (xhr.readyState == xhr.DONE && xhr.status == 200) {
-                thisObj._loading(true);
                 var response = xhr.response;
+                callback(response)
             }
         };
         xhr.onerror = function (e) {
@@ -108,7 +110,8 @@ let _componentCommonBlock = {
 
             let modal_body = document.createElement('div');
             modal_body.className = "modal-body";
-            modal_body.style = 'background-color:#f4f4f4;padding:0;';
+            modal_body.style = 'background-color:#f4f4f4;padding:0;overflow-y:auto;height:'+window.innerHeight*0.8 + 'px';
+
             this._modalBodyNode = modal_body;
             this._loading();
             //create modal
@@ -367,28 +370,20 @@ let componentForm = {
     _tableNode: null,
     _loadingNode:null,
     _request: function (url) {
-        //loading
-        var thisObj = this;
         this._loading();
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-        xhr.timeout = 30000;
-        xhr.responseType = "text";
-        var token= document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        xhr.setRequestHeader("Content-type", "application/text;charset=UTF-8");
-        xhr.setRequestHeader("X-CSRF-TOKEN", token);
-        xhr.send(null);
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState == xhr.DONE && xhr.status == 200) {
-                thisObj._loading(true);
-                var response = xhr.response;
-                //thisObj._modalBodyNode.append(response);
-                $('.modal-content').append(response)
-            }
-        };
-        xhr.onerror = function (e) {
-            console.log(e)
-        };
+        _componentCommonBlock._request(url,'GET',{},function (response) {
+            componentForm._loading(true);
+            $('.modal-body').append(response);
+            $('.modal-body button[type="submit"]').click(componentForm._submitEvent)
+        });
+    },
+    _submitEvent:function () {
+        let form = componentForm._modalBodyNode.getElementsByTagName('form')[0];
+        let formdata = new FormData(form);
+        for (var key of formdata.keys()) {
+            console.log(key);
+        }
+        console.log(formdata.get('name'))
     }
 };
 
