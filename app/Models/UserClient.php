@@ -37,4 +37,10 @@ class UserClient extends Model
         return $res;
     }
 
+
+    public function events()
+    {
+        return $this->belongsTo(UserClientEvent::class, 'id', 'uid');
+    }
+
 }

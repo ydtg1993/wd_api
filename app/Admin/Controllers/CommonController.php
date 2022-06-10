@@ -28,9 +28,4 @@ class CommonController extends Controller
             $footer->disableCreatingCheck();
         });
     }
-
-    public static function safeJson($data)
-    {
-        return addslashes(json_encode($data,JSON_UNESCAPED_UNICODE));
-    }
 }

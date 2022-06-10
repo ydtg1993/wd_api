@@ -2,6 +2,8 @@
 
 namespace App\Admin\Controllers;
 
+use App\Admin\Extensions\ComponentViewer;
+use App\Admin\Extensions\FileInput;
 use App\Models\Movie;
 use App\Models\MovieActor;
 use App\Models\MovieCategory;
@@ -11,6 +13,7 @@ use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Show;
 use Encore\Admin\Layout\Content;
+use Illuminate\Http\Request;
 
 class ManageMovieController extends AdminController
 {
@@ -23,7 +26,7 @@ class ManageMovieController extends AdminController
 
     public function __construct()
     {
-        Admin::headerJs(config('app.url').'/component.js?v'.rand(0,100));
+        Admin::headerJs(config('app.url') . '/component.js?v' . rand(0, 100));
     }
 
     /**
@@ -47,8 +50,6 @@ class ManageMovieController extends AdminController
         $grid->column('is_up', '状态')->using([1 => '上架', 2 => '下架']);
 
         $grid->column('release_time', __('发布时间'));
-        $grid->column('created_at', __('创建时间'));
-        $grid->column('updated_at', __('创建时间'));
         /*配置*/
         $grid->disableExport();
         $grid->disableRowSelector();
@@ -60,6 +61,7 @@ class ManageMovieController extends AdminController
             $filter->equal('cid', '分类')->select($categories);
             $filter->between('release_time', '发布时间')->datetime();
         });
+        ComponentViewer::makeAddFormAction($grid);
         ComponentViewer::makeEditFormAction($grid);
         return $grid;
     }
@@ -81,34 +83,28 @@ class ManageMovieController extends AdminController
         return $show;
     }
 
-    /**
-     * Create interface.
-     *
-     * @param Content $content
-     * @return Content
-     */
     public function create(Content $content)
     {
-        $form = new Form(new Movie);
-
-        $form->display('id', __('ID'));
-        $form->text('name', '名称')->required();
-
-        $form->display('created_at', __('Created At'));
-        $form->display('updated_at', __('Updated At'));
-
-        /*配置*/
-        HomeController::disableDetailConf($form);
-        return $content
-            ->header($this->title . '-创建')
-            ->description($this->title . '-创建')
-            ->body($form);
+        $request = Request::capture();
+        if ($request->ajax()) {
+            $data = $request->all();
+            return ComponentViewer::result(false, '失败信息');
+        }
+        $content = $content
+            ->body($this->form());
+        return ComponentViewer::makeForm($content);
     }
 
 
     public function edit($id, Content $content)
     {
-        $content =  $content
+        $request = Request::capture();
+        if ($request->ajax()) {
+            $data = $request->all();
+            $files = $_FILES;
+            return ComponentViewer::result(true);
+        }
+        $content = $content
             ->body($this->form($id)->edit($id));
         return ComponentViewer::makeForm($content);
     }
@@ -118,61 +114,100 @@ class ManageMovieController extends AdminController
      *
      * @return Form
      */
-    protected function form($id='')
+    protected function form($id = '')
     {
         $form = new Form(new Movie);
-        $movie = Movie::where('id',$id)->first();
+        $movie = Movie::where('id', $id)->first();
+        $categories = MovieCategory::where('status', 1)->pluck('name', 'id')->all();
 
-        $form->column('100%', function ($form)use($movie) {
+        $form->tab('基础信息', function ($form) use ($categories) {
             $form->text('name', '名称')->required();
-        });
-
-        $form->column(1/2, function ($form) {
             $form->text('number', '番号')->readonly();
-            $form->text('number_source', '源番号')->readonly();
-            $form->text('sell', '卖家')->readonly();
-            $form->number('score', '评分')->min(1)->max(10);
-            $form->datetime('release_time', '发布时间')->format('YYYY-MM-DD HH:mm:ss');
-        });
-        $form->column(1/2, function ($form) {
+            $form->radio('is_hot', '热门')->options([1 => '普通', 2 => '热门']);
+            $form->radio('is_subtitle', '字幕')->options([1 => '不含', 2 => '含字幕']);
+            $form->radio('is_up', '展示状态')->options([1 => '上架', 2 => '下架']);
             $form->number('time', '影片时长');
-            $form->select('category', '类别');
+            $form->select('category', '类别')->options($categories);
             $form->select('director', '导演');
-            $form->select('companies', '片商');
-            $form->select('series', '系列');
+            $form->datetime('release_time', '发行时间')->format('YYYY-MM-DD HH:mm:ss');
         });
 
-        $form->column(1/2, function ($form)use($movie) {
+        $form->tab('磁链信息', function ($form) use ($movie) {
+            $flux_linkage = $movie ? (array)json_decode($movie->flux_linkage, true) : [];
+            ComponentViewer::makeComponentLine($form, 'flux_linkage', '磁力链接', [
+                'name' => ['name' => '名称', 'type' => 'input', 'style' => 'width:120px'],
+                'meta' => ['name' => '信息', 'type' => 'input'],
+                'url' => ['name' => '链接', 'type' => 'input', 'style' => 'width:120px'],
+                'time' => ['name' => '更新时间', 'type' => 'text'],
+                'is-small' => ['name' => '是否高清[1是 2否]', 'type' => 'input'],
+                'is-warning' => ['name' => '含字幕[1是 2否]', 'type' => 'input'],
+                'tooltip' => ['name' => '可下载[1是 2否]', 'type' => 'input'],
+            ], $flux_linkage);
+        });
+
+        $form->tab('演员/标签', function ($form) use ($movie) {
             /*演员选择器*/
-            list($actors, $selected_actors) = $this->actorMultiSelect($movie->id, $movie->cid);
-            Admin::script(<<<EOF
-        componentSelect("actors",JSON.parse('$selected_actors'),JSON.parse('$actors'));
-EOF
-            );
-            $form->html('<div id="actors"></div>', '演员选择');
-        });
+            if ($movie) {
+                list($actors, $selected_actors) = $this->actorMultiSelect($movie->id, $movie->cid);
+            } else {
+                list($actors, $selected_actors) = [[], []];
+            }
+            ComponentViewer::makeComponentDot($form, 'actors', '演员选择', $actors, $selected_actors);
 
-        $form->column(1/2, function ($form)use($movie) {
             /*标签择器*/
             //TODO
             $form->html('<div id="labels"></div>', '标签选择');
         });
 
-        $form->column(12, function ($form)use($movie) {
-            Admin::script(<<<EOF
-        componentJsonTable("flux_linkage",{
-            'name':{'name':'名称',type:'input',style:'width:200px'},
-            'meta':{'name':'数据',type:'text'},
-            'url':{'name':'链接',style:'width:200px',type:'hidden'}
-            },JSON.parse('$movie->flux_linkage'));
-EOF
-            );
-            $form->html('<div id="flux_linkage"></div>', '磁力链接');
+        /*图像资源管理*/
+        $form->tab('图像资源', function ($form) use ($movie) {
+            $settings = [
+                'uploadUrl' => config('app.url') . '/admin/manage_movie/fileInput',
+                'uploadExtraData' => [
+                    '_token' => csrf_token(),
+                    '_method' => 'POST',
+                    'movie_id' => $movie ? $movie->id : '',
+                    'uploadAsync' => $movie ? true : false
+                ]
+            ];
+
+            $settings['uploadExtraData']['column'] = 'big_cove';
+            $form->image('big_cove', '大封面')->options($settings)->removable()->uniqueName();
+
+            $settings['uploadExtraData']['column'] = 'small_cover';
+            $form->image('small_cover', '小封面')->options($settings)->removable()->uniqueName();
+
+            $settings['uploadExtraData']['column'] = 'trailer';
+            $settings['allowedFileExtensions'] = ["mp4", "mpg", "mpeg", "avi", "rmvb"];
+            $settings['maxFileSize'] = 51200;
+            $form->file('trailer', '预告片')->options($settings)->removable()->uniqueName();
+
+            $settings = [
+                'uploadUrl' => config('app.url') . '/admin/manage_movie/map',
+                'uploadExtraData' => [
+                    '_token' => csrf_token(),
+                    'movie_id' => $movie ? $movie->id : '',
+                    'uploadAsync' => $movie ? true : false
+                ],
+                'deleteUrl' => config('app.url') . '/admin/manage_movie/fileRemove',
+                'deleteExtraData' => [
+                    '_token' => csrf_token(),
+                    'movie_id' => $movie ? $movie->id : '',
+                    'uploadAsync' => $movie ? true : false
+                ]
+            ];
+            $settings['uploadExtraData']['column'] = 'map';
+            $settings['allowedFileExtensions'] = ["png", "jpg", "jpeg", "gif"];
+            $settings['maxFileCount'] = 20;
+            $settings['maxFileSize'] = 5120;
+            $map = [];
+            if($movie){
+                foreach ((array)json_decode($movie->map,true) as $m){
+                    $map[] = $m['img'];
+                }
+            }
+            FileInput::files($form, 'map', '组图',$map, $settings);
         });
-
-        $form->display('created_at', __('Created At'));
-        $form->display('updated_at', __('Updated At'));
-
         /*配置*/
         CommonController::disableDetailConf($form);
         return $form;
@@ -180,16 +215,16 @@ EOF
 
     private function actorMultiSelect($id, $cid)
     {
-        $select = MovieActor::join('movie_actor_category_associate','movie_actor.id','=','movie_actor_category_associate.aid')
-            ->where('movie_actor_category_associate.cid',$cid)
-            ->where('movie_actor.status',1)
-            ->select('movie_actor.id','movie_actor.name','movie_actor.sex')->get()->toArray();
+        $select = MovieActor::join('movie_actor_category_associate', 'movie_actor.id', '=', 'movie_actor_category_associate.aid')
+            ->where('movie_actor_category_associate.cid', $cid)
+            ->where('movie_actor.status', 1)
+            ->pluck('movie_actor.name','movie_actor.id')->all();
 
-        $selected = MovieActor::join('movie_actor_associate','movie_actor.id','=','movie_actor_associate.aid')
-            ->where('movie_actor.status',1)
-            ->where('movie_actor_associate.mid',$id)
-            ->select('movie_actor.id','movie_actor.name','movie_actor.sex')->get()->toArray();
+        $selected = MovieActor::join('movie_actor_associate', 'movie_actor.id', '=', 'movie_actor_associate.aid')
+            ->where('movie_actor.status', 1)
+            ->where('movie_actor_associate.mid', $id)
+            ->pluck('movie_actor.name','movie_actor.id')->all();
 
-        return [CommonController::safeJson($select), CommonController::safeJson($selected)];
+        return [$select, $selected];
     }
 }

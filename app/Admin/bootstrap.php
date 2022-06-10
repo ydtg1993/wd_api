@@ -1,10 +1,8 @@
 <?php
 
-use Dcat\Admin\Admin;
-use Dcat\Admin\Grid;
-use Dcat\Admin\Form;
-use Dcat\Admin\Grid\Filter;
-use Dcat\Admin\Show;
+
+use Encore\Admin\Facades\Admin;
+use Encore\Admin\Form;
 
 /**
  * Dcat-admin - admin builder based on Laravel.
@@ -24,3 +22,10 @@ use Dcat\Admin\Show;
  * Admin::js('/packages/prettydocs/js/main.js');
  *
  */
+
+
+Admin::navbar(function (\Encore\Admin\Widgets\Navbar $navbar) {
+    $navbar->right(new \App\Admin\Extensions\Nav\Links());
+});
+
+Form::extend('searchinput', \App\Admin\Extensions\SearchInput::class);

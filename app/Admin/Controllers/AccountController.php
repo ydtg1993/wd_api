@@ -4,11 +4,11 @@ namespace App\Admin\Controllers;
 
 use App\Admin\Actions\Post\BatchLock;
 use App\Admin\Actions\Post\LockAction;
-use App\Admin\Actions\Post\Replicate;
 use App\Models\UserClient;
 use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
+use Encore\Admin\Grid\Displayers\DropdownActions;
 use Encore\Admin\Show;
 
 class AccountController extends AdminController
@@ -28,11 +28,12 @@ class AccountController extends AdminController
     protected function grid()
     {
         $grid = new Grid(new UserClient());
+        $grid->setActionClass(DropdownActions::class);
+
+        $grid->model()->with("events");
 
         $grid->column('id', __('ID'))->sortable();
-        $grid->column('number','uuid')->display(function ($number) {
-            return "<span class='label label-warning' title='{$number}'>查看</span>";
-        });
+        $grid->column('number','uuid');
         $grid->column('reg_device', '设备类型')->using([
             'web' => '电脑网页', 'android' => '安卓手机','iphone'=>'苹果手机',
             'ipad'=> '平板','other'=>'其他']);
@@ -41,8 +42,21 @@ class AccountController extends AdminController
         $grid->column('email', '邮箱');
         $grid->column('status', '状态')->using([
             0 => '全部', 1 => '正常',2=>'禁言', 3=> '拉黑']);
-        $grid->column('login_time', __('登录时间'));
+        $grid->column('login_time', __('最近登录'));
         $grid->column('created_at', __('创建时间'));
+
+        $grid->column('avatar', __('头像'))->image();
+
+        $grid->column('login_ip', __('用户最近登录ip'));
+        $grid->column('type', __('用户类型'));
+        $grid->column('status', __('用户状态'));
+
+        $grid->column('events.my_comment', __('我的评论'));
+        $grid->column('events.my_reply', __('我的回复'));
+        $grid->column('events.my_like', __('我的点赞'));
+        $grid->column('events.like', __('收到点赞数'));
+        $grid->column('events.dislike', __('收到的踩'));
+        $grid->column('events.report', __('收到的举报'));
 
         /*配置*/
         $grid->disableCreateButton();

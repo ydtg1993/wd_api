@@ -11,7 +11,7 @@ class ArticleComment extends Model
     protected $table = 'article_comment';
 
     /**
-     * 评论 
+     * 评论
      */
     public static function add($data)
     {
@@ -21,7 +21,7 @@ class ArticleComment extends Model
     }
 
     /**
-     * 判断数据是否已经存在 
+     * 判断数据是否已经存在
      */
     public static function again($uid,$aid,$comment)
     {
@@ -53,4 +53,15 @@ class ArticleComment extends Model
         $struct['avatar'] = (filter_var($avatar, FILTER_VALIDATE_URL) !== false)?$struct['avatar']:(($struct['avatar'] == '')?'':Common::getImgDomain().$struct['avatar']);
         return $struct;
     }
+
+    public function article()
+    {
+        return $this->belongsTo(Article::class, 'aid', 'id');
+    }
+
+    public function user_client()
+    {
+        return $this->belongsTo(UserClient::class, 'uid', 'id');
+    }
+
 }

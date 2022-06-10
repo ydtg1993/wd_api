@@ -4,6 +4,7 @@
 namespace App\Admin\Controllers;
 
 
+use App\Admin\Actions\Post\UnLock;
 use App\Models\UserLock;
 use Encore\Admin\Admin;
 use Encore\Admin\Controllers\AdminController;
@@ -38,7 +39,13 @@ class AccountLockController extends AdminController
         $grid->column('uname', __('用户名'));
         $grid->column('email', __('登录邮箱'));
         $grid->column('phone', __('手机号码'));
-        $grid->column('status', __('封禁类型'));
+        //状态类型，2.禁言  3.拉黑
+        $grid->column('status', __('封禁类型'))->using([
+            1 => '正常',
+            2 => '禁言',
+            3 => '拉黑'
+        ]);
+
         $grid->column('unlock_time', __('解封时间'));
         $grid->column('remarks', __('封禁原因'));
         $grid->column('updated_at', __('创建时间'));
@@ -55,7 +62,7 @@ class AccountLockController extends AdminController
             // 去掉查看
             $actions->disableEdit();
             // 自定义解封
-            $actions->append("<a class='btn btn-xs action-btn btn-success grid-row-pass' data-id='{$actions->getKey()}'><i class='fa fa-check' title='用户解封'>解封</i></a>");
+            $actions->add(new UnLock());
         });
         /*查询匹配*/
         $grid->filter(function($filter){
@@ -66,40 +73,6 @@ class AccountLockController extends AdminController
             $filter->equal('email', '邮箱');
             $filter->between('created_at', '创建时间')->datetime();
         });
-
-
-        /**
-         * 创建模态框
-         */
-        $this->script = <<<EOT
-        $('.grid-row-pass').unbind('click').click(function() {
-            var id = $(this).data('id');
-            swal({
-                title: "确认解封吗？",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#DD6B55",
-                confirmButtonText: "确认",
-                showLoaderOnConfirm: true,
-                cancelButtonText: "取消",
-                preConfirm: function() {
-                    $.ajax({
-                        method: 'get',
-                        url: '/admin/unlock/' + id,
-                        success: function (data) {
-                            $.pjax.reload('#pjax-container');
-                            if(data.code){
-                                swal(data.msg, '', 'success');
-                            }else{
-                                swal(data.msg, '', 'error');
-                            }
-                        }
-                    });
-                }
-            });
-        });
-EOT;
-        Admin::script($this->script);
 
         return $grid;
     }

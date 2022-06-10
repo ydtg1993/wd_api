@@ -33,6 +33,7 @@ class MovieCommentController extends AdminController
         $grid->model()->with(['user_lock' => function ($query) {
             $query->orderby('id' ,'desc');
         }]);
+        $grid->model()->where('type', 1);
         $grid->model()->orderBy("id", "desc");
 
         $grid->column('id', __('ID'))->sortable();
@@ -77,10 +78,10 @@ class MovieCommentController extends AdminController
 
 
         $grid->column('dislike', __('踩数'));
-        $grid->column('updated_at', __('评论时间'));
+        $grid->column('created_at', __('评论时间'));
 
         $grid->disableCreateButton();
-        $grid->disableExport();
+//        $grid->disableExport();
         $grid->disableRowSelector();
         $grid->actions(function ($actions) {
             // 去掉删除
@@ -88,7 +89,7 @@ class MovieCommentController extends AdminController
             // 去掉查看
             $actions->disableView();
             // 去掉查看
-            $actions->disableEdit();
+//            $actions->disableEdit();
 
             $actions->append("<a class='btn btn-xs action-btn btn-success grid-row-pass'><i class='fa fa-info' title='详情'>详情</i></a>");
 
@@ -110,22 +111,7 @@ class MovieCommentController extends AdminController
         return $grid;
     }
 
-    /**
-     * Make a show builder.
-     *
-     * @param mixed $id
-     * @return Show
-     */
-    protected function detail($id)
-    {
-        $show = new Show(MovieComment::findOrFail($id));
 
-        $show->field('id', __('ID'));
-        $show->field('created_at', __('Created at'));
-        $show->field('updated_at', __('Updated at'));
-
-        return $show;
-    }
 
     /**
      * Make a form builder.
@@ -135,10 +121,16 @@ class MovieCommentController extends AdminController
     protected function form()
     {
         $form = new Form(new MovieComment);
+        $form->model()->with('movie');
+        $form->model()->with('user_client');
 
         $form->display('id', __('ID'));
-        $form->display('created_at', __('Created At'));
-        $form->display('updated_at', __('Updated At'));
+
+        $form->display('movie.number', __('影片番号'));
+        $form->display('user_client.nickname', __('用户名'));
+        $form->display('score', __('评分'));
+
+        $form->text('like', __('点赞数'));
 
         return $form;
     }

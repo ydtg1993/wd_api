@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Filter extends Model
 {
+    protected $table = 'filter_keyword';
+
     /**
      * 判断是否存在
      */

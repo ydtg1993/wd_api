@@ -343,10 +343,6 @@ class MovieDetailController extends BaseController
             if ($res == false) {
                 return $this->sendError('回复失败');
             }
-            Mv::where('id', $request->input('id'))->update([
-                'new_comment_time' => date('Y-m-d H:i:s'),
-                'comment_num' => DB::raw('comment_num+1')]);
-
             return $this->sendJson([],200,'执行完成',$warning);
         } catch (\Exception $e) {
             Log::error($e->getMessage() . '_' . $e->getFile() . '_' . $e->getLine());

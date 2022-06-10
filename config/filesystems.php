@@ -78,9 +78,9 @@ return [
 
         'admin' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            'root' => storage_path('app/public/resources'),
             'visibility' => 'public',
-            'url' => env('IMAGE_DOMAIN', ''),
+            'url' => env('IMAGE_DOMAIN', '').'/resources/',
         ],
     ],
 

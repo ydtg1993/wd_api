@@ -40,9 +40,7 @@ class ActorPopularityChart extends Model
             ->whereIn('movie_actor.sex', ['♀',''])
             ->where('actor_popularity_chart.cid', $type)
             ->where('actor_popularity_chart.mtime', $this_month)
-            ->orderBy('actor_popularity_chart.hot_val', 'desc')
-            ->orderBy('actor_popularity_chart.up_mhot', 'desc')
-            ->orderBy('movie_actor.id', 'desc')
+            ->orderBy('actor_popularity_chart.rank', 'asc')
             ->offset(0)
             ->limit(100)
             ->select('movie_actor.*',
@@ -54,12 +52,10 @@ class ActorPopularityChart extends Model
                 'actor_popularity_chart.new_movie_score_people')
             ->get()->toArray();
 
-        $i = 1;
         $temp = [];
         foreach ($actors as $val) {
             $actor = MovieActor::formatList((array)$val,true);
-            $actor['rank'] = $i;
-            $i++;
+            $actor['float'] = $val['rank_float'];
             $temp[] = $actor;
         }
         $reData['sum'] = count($temp);
