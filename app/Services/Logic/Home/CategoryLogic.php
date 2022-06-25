@@ -42,26 +42,20 @@ class CategoryLogic extends HomeBaseLogic
         $reData = RedisCache::getCacheData('movie','movie:category:list:',function () use ($data,$cid,$page,$pageSize)
         {
             $reData = ['list'=>[],'sum'=>0];
-            if($cid > 0)
-            {
-                $movieCategoryAssociateDb = MovieCategoryAssociate::where('movie_category_associate.status',1)->where('cid',$cid);
-                $movieDb = Movie::where('movie.status',1)->where('movie.is_up',1);
-                $movieCategoryAssociateDb = $movieCategoryAssociateDb->leftJoinSub($movieDb,'movie',function ($join)
-                {
-                    $join->on('movie.id', '=', 'movie_category_associate.mid');
-                });
+            if($cid > 0) {
+                $movieDb = Movie::where('status',1)->where('is_up',1)->where('cid',$cid);
 
-                (($data['is_subtitle']??1) == 1)?null:($movieCategoryAssociateDb = $movieCategoryAssociateDb->where('movie.is_subtitle',2));
-                (($data['is_download']??1) == 1)?null:($movieCategoryAssociateDb = $movieCategoryAssociateDb->where('movie.is_download',2));
-                (($data['is_short_comment']??1) == 1)?null:($movieCategoryAssociateDb = $movieCategoryAssociateDb->where('movie.is_short_comment',2));
+                (($data['is_subtitle']??1) == 1)?null:($movieDb = $movieDb->where('is_subtitle',2));
+                (($data['is_download']??1) == 1)?null:($movieDb = $movieDb->where('is_download',2));
+                (($data['is_short_comment']??1) == 1)?null:($movieDb = $movieDb->where('is_short_comment',2));
 
                 $orderBy = (($data['release_time']??2) == 1)?'asc':'desc'; // 1 是 asc 2 是desc
-                $movieCategoryAssociateDb = $movieCategoryAssociateDb->orderBy('movie.release_time',$orderBy);
+                $movieDb = $movieDb->orderBy('release_time',$orderBy);
 
                 $orderBy = (($data['flux_linkage_time']??2) == 1)?'asc':'desc'; // 1 是 asc 2 是desc
-                $movieCategoryAssociateDb = $movieCategoryAssociateDb->orderBy('movie.flux_linkage_time',$orderBy);
-                $reData['sum']= $movieCategoryAssociateDb->count();
-                $movieCategoryAssociateList = $movieCategoryAssociateDb->offset(($page - 1) * $pageSize)
+                $movieDb = $movieDb->orderBy('flux_linkage_time',$orderBy);
+                $reData['sum']= $movieDb->count();
+                $movieCategoryAssociateList = $movieDb->offset(($page - 1) * $pageSize)
                     ->limit($pageSize)
                     ->get();
 
@@ -73,9 +67,7 @@ class CategoryLogic extends HomeBaseLogic
                 }
 
                 return $reData;
-            }
-            else
-            {
+            } else {
                 $movieDb = Movie::where('status',1)->where('is_up',1);
                 (($data['is_subtitle']??1) == 1)?null:($movieDb = $movieDb->where('is_subtitle',2));
                 (($data['is_download']??1) == 1)?null:($movieDb = $movieDb->where('is_download',2));
@@ -96,10 +88,7 @@ class CategoryLogic extends HomeBaseLogic
                     $tempVal = Movie::formatList($val);
                     $reData['list'][] = $tempVal;
                 }
-
-                return $reData;
             }
-
             return $reData;
         },['cid'=>$cid,'page'=>$page,'pageSize'=>$pageSize,'args'=>md5(json_encode($data))],$isCache);
 

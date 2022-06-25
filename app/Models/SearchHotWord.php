@@ -35,24 +35,4 @@ class SearchHotWord extends Model
 
         return $mRes[0]->nums;
     }
-
-    /**
-     * 写入数据
-     */
-    public function add($da=array())
-    {
-        //清除数据
-        DB::delete('delete from '.$this->table.' limit 20;');
-
-        //重写入
-        foreach($da as $v)
-        {
-            if($v){
-                DB::table($this->table)->insertGetId(['content' => $v]);
-            }
-        }
-
-        //清除缓存
-        RedisCache::delKey($this->cacheKey);
-    }
 }

@@ -23,9 +23,4 @@ use Encore\Admin\Form;
  *
  */
 
-
-Admin::navbar(function (\Encore\Admin\Widgets\Navbar $navbar) {
-    $navbar->right(new \App\Admin\Extensions\Nav\Links());
-});
-
 Form::extend('searchinput', \App\Admin\Extensions\SearchInput::class);

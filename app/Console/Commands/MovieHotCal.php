@@ -30,6 +30,12 @@ class MovieHotCal extends Command
     protected $description = '热门推荐影片 每日热度统计';
 
     /**
+     * 图片路径切分
+     * @var int
+     */
+    protected $chunk = 256;
+
+    /**
      * Create a new command instance.
      *
      * @return void
@@ -51,47 +57,75 @@ class MovieHotCal extends Command
         $today = date('Y-m-d 00:00:00');
         $base_dir = rtrim(public_path('resources'), '/') . '/';
         foreach ($categories as $category) {
-            $logs = MovieLog::where('cid',$category)
-                ->where('created_at','>',$timeline)
+            $logs = MovieLog::where('cid', $category)
+                ->where('created_at', '>', $timeline)
                 ->groupBy('mid')
-                ->orderBy('pv','desc')
-                ->orderBy('mid','desc')
+                ->orderBy('pv', 'desc')
+                ->orderBy('mid', 'desc')
                 ->select(DB::raw('count(mid) as pv, mid'))
-                ->limit(100)
+                ->limit(300)
                 ->get()->toArray();
-            if(empty($logs)){
+            if (empty($logs)) {
                 continue;
             }
-            foreach ($logs as &$log){
+            foreach ($logs as &$log) {
                 $mid = $log['mid'];
-                $log['want_see'] = UserWantSeeMovie::where(['status'=> 1,'mid'=> $mid])->where('mark_time', '>', $timeline)->count();
-                $log['seen'] = UserSeenMovie::where(['status'=> 1,'mid'=>$mid])->where('mark_time', '>', $timeline)->count();
-                $log['comment_num'] = MovieComment::where(['status' => 1, 'cid' => 0, 'source_type' => 1,'mid'=>$mid])->where('comment_time','>', $timeline)->count();
+                $log['want_see'] = UserWantSeeMovie::where(['status' => 1, 'mid' => $mid])->where('mark_time', '>', $timeline)->count();
+                $log['seen'] = UserSeenMovie::where(['status' => 1, 'mid' => $mid])->where('mark_time', '>', $timeline)->count();
+                $log['comment_num'] = MovieComment::where(['status' => 1, 'cid' => 0, 'source_type' => 1, 'mid' => $mid])->where('comment_time', '>', $timeline)->count();
                 $log['category'] = $category;
-                $log['photo']  = '';
+                $log['photo'] = '';
                 $log['ctime'] = $today;
-                $log['hot'] = $log['pv'] + ($log['comment_num']*5) + ($log['want_see']+$log['seen'])*3;
+                $log['hot'] = $log['pv'] + ($log['comment_num'] * 5) + ($log['want_see'] + $log['seen']) * 3;
             }
             array_multisort(array_column($logs, 'hot'), SORT_DESC, $logs);
-            $logs = array_slice($logs,0,10);
-            foreach ($logs as $log){
+            $this->resource(array_slice($logs, 11));
+            $logs = array_slice($logs, 0, 10);
+            foreach ($logs as &$log) {
                 //图像资源复制
                 $movie = Movie::where('id', $log['mid'])->first();
-                $newDir = $base_dir.'recommend_movie/'.$category.'/';
+                $dir = 'recommend_movie/' . ($movie->id % $this->chunk) . '/' . $movie->id . '/';
+                $newDir = $base_dir . $dir;
                 if (!is_dir($newDir)) {
                     mkdir($newDir, 0777, true);
                     chmod($newDir, 0777);
                 }
-                if(!is_file($base_dir.$movie->big_cove)){
+                if (!is_file($base_dir . $movie->big_cove)) {
                     continue;
                 }
-                $res = copy($base_dir.ltrim($movie->big_cove,'/'),$newDir.ltrim(basename($movie->big_cove),'/'));
-                if($res){
-                    $log['photo']  = 'recommend_movie/'.$category.'/'.$movie->big_cove;
+                $ext = pathinfo($movie->big_cove, PATHINFO_EXTENSION);
+                if (is_file($newDir . 'cover.' . $ext)) {
+                    $log['photo'] = $dir . 'cover.' . $ext;
+                    continue;
+                }
+                $res = copy($base_dir . $movie->big_cove, $newDir . 'cover.' . $ext);
+                if ($res) {
+                    $log['photo'] = $dir . 'cover.' . $ext;
                 }
             }
             RecommendMovie::insert($logs);
         }
     }
 
+    private function resource($data)
+    {
+        $base_dir = rtrim(public_path('resources'), '/') . '/';
+        foreach ($data as $d) {
+            $id = $d['mid'];
+            $dir = 'recommend_movie/' . ($id % $this->chunk) . '/' . $id . '/';
+            $path = $base_dir . $dir;
+            if (is_dir($path)) {
+                $dirs = scandir($path);
+                foreach ($dirs as $dir) {
+                    if ($dir != '.' && $dir != '..') {
+                        $sonDir = $path . '/' . $dir;
+                        if(is_file($sonDir)) {
+                            @unlink($sonDir);
+                        }
+                    }
+                }
+                @rmdir($path);
+            }
+        }
+    }
 }

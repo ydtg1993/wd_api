@@ -240,7 +240,7 @@ class RankList extends Command
                 'actor_popularity_chart.new_movie_seen',
                 'actor_popularity_chart.new_movie_score',
                 'actor_popularity_chart.new_movie_score_people')
-            ->get()->toArray();
+            ->get();
         foreach ($actors as $actor) {
             if ($this->total <= 0) {
                 break;
@@ -287,13 +287,13 @@ class RankList extends Command
                 'actor_popularity_chart.new_movie_seen',
                 'actor_popularity_chart.new_movie_score',
                 'actor_popularity_chart.new_movie_score_people')
-            ->get()->toArray();
+            ->get();
         $rank = 0;
         foreach ($actors as $actor){
             $rank++;
             $float = 0;
             $last = ActorPopularityChart::where('aid',$actor->id)
-                ->where('type',$type)
+                ->where('cid',$type)
                 ->where('mtime',$this->last_month)
                 ->first();
             if(!$last){
@@ -308,7 +308,7 @@ class RankList extends Command
                 }
             }
             ActorPopularityChart::where('aid',$actor->id)
-                ->where('type',$type)
+                ->where('cid',$type)
                 ->where('mtime',$this->this_month)
                 ->update(['rank'=>$rank,'rank_float'=>$float]);
         }

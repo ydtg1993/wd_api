@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Admin\Controllers;
+namespace App\Admin\Controllers\Comment;
 
 
 use App\Models\Filter;

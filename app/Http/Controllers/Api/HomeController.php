@@ -9,8 +9,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\ActorPopularityChart;
-use App\Models\MovieLog;
 use App\Models\Movie;
+use App\Models\RecommendMovie;
+use App\Services\Logic\Common;
 use App\Services\Logic\Home\HomeLogic;
 use App\Services\Logic\Search\SearchLogic;
 use Illuminate\Http\Request;
@@ -18,8 +19,6 @@ use Illuminate\Support\Facades\Redis;
 
 class HomeController extends BaseController
 {
-
-
     public function index(Request $request)
     {
         $data = $request->input();
@@ -30,7 +29,7 @@ class HomeController extends BaseController
         {
             $homeObj  = new HomeLogic();
             $reData = $homeObj->getHomeData($data,$data['home_type']??1);
-        }else{
+        }else if(isset($data['home_type'])){
 
             if($data['home_type']==4)
             {
@@ -43,6 +42,30 @@ class HomeController extends BaseController
         }
 
         return $this->sendJson($reData);
+    }
+
+    /**
+     * 首页热门视频轮播推荐
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function carousel(Request $request)
+    {
+        $category = $request->input('category');
+        $today = date('Y-m-d 00:00:00');
+
+        $cache = "carousel:{$category}";
+        $record = Redis::get($cache);
+        $recommends = RecommendMovie::where(['recommend_movie.status'=>0,'recommend_movie.category'=>$category,'recommend_movie.ctime'=>$today])
+            ->join('movie','movie.id','=','recommend_movie.mid')
+            ->orderBy('recommend_movie.hot','DESC')
+            ->limit(10)
+            ->select('movie.id','recommend_movie.hot', 'movie.name','movie.score','movie.score_people','recommend_movie.photo')
+            ->get()->toArray();
+        foreach ($recommends as &$recommend){
+            $recommend['photo'] = Common::getImgDomain().$recommend['photo'];
+        }
+        return $this->sendJson($recommends);
     }
 
     /**

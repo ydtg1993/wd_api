@@ -104,7 +104,7 @@ class SearchController extends BaseController
             ]);
             $da = $this->formatRes($response);
             $list = [];
-            preg_match_all("/^([a-zA-Z]+)([\-|\.]+)([0-9]*)/",strtolower($keyword),$preg);
+            preg_match_all("/^([a-zA-Z]+)([\-|\.]+)([0-9]*)/",strtoupper($keyword),$preg);
             $key = current($preg[1]);
             foreach ($da['list'] as $d){
                 if(preg_match("/{$key}/",$d['number'])){
@@ -191,9 +191,8 @@ class SearchController extends BaseController
             $this->queryRemoveCondition('must');
             $this->queryCondition('must_not', ['term' => ['categoty_id' => 3]]);
             $this->queryCondition('should', ['match' => ['name' => ['query' => $keyword, 'boost' => 20]]]);
-            $this->query['query']['bool']['minimum_should_match'] = 1;
             //含有中文时
-            Chinese::setMode('JSON');
+            Chinese::setMode('SQLite');
             $keyword2 = (string)current(Chinese::toTraditional($keyword));
             if ($keyword2 != "" && $keyword2 != $keyword) {
                 $this->queryCondition('should', ['match' => ['name' => ['query' => $keyword2, 'boost' => 10]]], true);
@@ -287,6 +286,9 @@ class SearchController extends BaseController
                     }
                     if (isset($v['_source']['cover']) && !empty($v['_source']['cover'])) {
                         $v['_source']['cover'] = Common::getImgDomain() . $v['_source']['cover'];
+                    }
+                    if(isset($v['_source']['number'])){
+                        $v['_source']['number'] = strtoupper($v['_source']['number']);
                     }
                     unset($v['_source']['flux_linkage']);
                     unset($v['_source']['map']);

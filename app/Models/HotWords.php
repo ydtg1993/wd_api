@@ -1,9 +1,9 @@
 <?php
 namespace App\Models;
 
-use App\Services\Logic\RedisCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class HotWords extends Model
 {
@@ -16,19 +16,17 @@ class HotWords extends Model
     public function lists()
     {
         //优先读取缓存
-        $res = RedisCache::getSetAll($this->cacheKey);
+        $res = Redis::get($this->cacheKey);
         if($res){
-            return $res;
+            return (array)json_decode($res);
         }
+        $mRes = DB::select('select id,content from '.$this->table.' order by times DESC limit 20');
 
-        //读取数据库
-        $mRes = DB::select('select id,content from '.$this->table.' order by id asc limit 20');
-
-        //写入缓存
+        $res = [];
         foreach ($mRes as $val) {
-            RedisCache::addSets($this->cacheKey, $val->content);
             $res[]=$val->content;
         }
+        Redis::set($this->cacheKey,json_encode($res));
 
         return $res;
     }

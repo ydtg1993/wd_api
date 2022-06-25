@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Admin\Controllers;
+namespace App\Admin\Controllers\Comment;
 
 
 use App\Models\MovieComment;
@@ -54,9 +54,10 @@ class MovieCommentController extends AdminController
         $grid->column('score', __('评分'));
         $grid->column('comment', __('内容'));
         //1.正常 0.待审核 2.不通过
-        $grid->column('audit', __('审核状态'))->using([
-            0 => '待审核', 1 => '正常', 2 => '不通过']);
-//        $grid->column('like', __('赞数'));
+        $grid->column('status', __('显示状态'))->switch([
+            'on'  => ['value' => 1, 'text' => '显示', 'color' => 'success'],
+            'off' => ['value' => 2, 'text' => '隐藏', 'color' => 'default'],
+        ]);
 
         $grid->column('like', '赞数')->modal('点赞列表', function ($model) {
 
@@ -81,18 +82,11 @@ class MovieCommentController extends AdminController
         $grid->column('created_at', __('评论时间'));
 
         $grid->disableCreateButton();
-//        $grid->disableExport();
         $grid->disableRowSelector();
         $grid->actions(function ($actions) {
-            // 去掉删除
             $actions->disableDelete();
-            // 去掉查看
             $actions->disableView();
-            // 去掉查看
-//            $actions->disableEdit();
-
-            $actions->append("<a class='btn btn-xs action-btn btn-success grid-row-pass'><i class='fa fa-info' title='详情'>详情</i></a>");
-
+            $actions->disableEdit();
         });
 
         /*查询匹配*/
@@ -101,10 +95,6 @@ class MovieCommentController extends AdminController
             $filter->like('movie.number', '番号');
             $filter->equal('uid', '用户ID');
             $filter->like('user_client.nickname', '用户名');
-
-//            $filter->select('phone', '手机号');
-//            $filter->equal('email', '邮箱');
-
             $filter->between('created_at', '创建时间')->datetime();
         });
 
@@ -121,16 +111,11 @@ class MovieCommentController extends AdminController
     protected function form()
     {
         $form = new Form(new MovieComment);
-        $form->model()->with('movie');
-        $form->model()->with('user_client');
-
         $form->display('id', __('ID'));
-
-        $form->display('movie.number', __('影片番号'));
-        $form->display('user_client.nickname', __('用户名'));
-        $form->display('score', __('评分'));
-
-        $form->text('like', __('点赞数'));
+        $form->radio('status', '显示')->options([
+            '1' => '显示',
+            '2' => '隐藏'
+        ]);
 
         return $form;
     }

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Admin\Controllers;
+namespace App\Admin\Controllers\Ads;
 
+use App\Admin\Controllers\CommonController;
 use App\Models\Ads;
 use App\Models\AdsPos;
 use Encore\Admin\Controllers\AdminController;

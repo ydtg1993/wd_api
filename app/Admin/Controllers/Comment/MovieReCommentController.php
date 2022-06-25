@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Admin\Controllers;
+namespace App\Admin\Controllers\Comment;
 
 
 use App\Admin\Actions\Post\BatchMovieCommentHide;
@@ -50,9 +50,6 @@ class MovieReCommentController extends AdminController
         $grid->column('created_at', __('评论时间'));
 
         $grid->disableCreateButton();
-//        $grid->disableExport();
-//        $grid->disableRowSelector();
-//        $grid->disableTools();
         $grid->actions(function ($actions) {
             // 去掉删除
             $actions->disableDelete();

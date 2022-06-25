@@ -49,7 +49,8 @@ class ActorPopularityChart extends Model
                 'actor_popularity_chart.new_movie_want',
                 'actor_popularity_chart.new_movie_seen',
                 'actor_popularity_chart.new_movie_score',
-                'actor_popularity_chart.new_movie_score_people')
+                'actor_popularity_chart.new_movie_score_people',
+                'actor_popularity_chart.rank_float')
             ->get()->toArray();
 
         $temp = [];

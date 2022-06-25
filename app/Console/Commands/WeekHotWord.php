@@ -6,6 +6,7 @@ use App\Models\SearchLog;
 use App\Models\SearchHotWord;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class WeekHotWord extends Command
 {
@@ -48,14 +49,11 @@ class WeekHotWord extends Command
         $mdb = new SearchLog();
         $arr = $mdb->groupCountLists($sTime,$eTime);
 
-        $res=array();
+        SearchHotWord::where('created_at','<',date('Y-m-d'))->delete();
         foreach($arr as $v){
-            $res[] = $v->content;
+            SearchHotWord::insert(['content'=>$v->content,'times'=>$v->nums]);
         }
-
-        $md = new SearchHotWord();
-        $md->add($res);
-
+        Redis::del('hot_keyword');
         echo '生成热词完成'.PHP_EOL;
     }
 }

@@ -33,7 +33,7 @@ class ManageMovieSyncFileController extends AdminController
             unlink($base_dir . $before_file);
         }
 
-        $newDir = $base_dir . 'manage_movie/' . $movie->id . '/';
+        $newDir = $base_dir . 'manage_movie/' . ($movie->id % 512) . '/' . $movie->id . '/';
         if (!is_dir($newDir)) {
             mkdir($newDir, 0777, true);
             chmod($newDir, 0777);
@@ -67,7 +67,7 @@ class ManageMovieSyncFileController extends AdminController
         $movie = Movie::where('id', $movie_id)->first();
         $base_dir = rtrim(public_path('resources'), '/') . '/';
 
-        $newDir = $base_dir . 'manage_movie/' . $movie->id . '/map/';
+        $newDir = $base_dir . 'manage_movie/' . ($movie->id % 512) . '/' . $movie->id . '/map/';
         if (!is_dir($newDir)) {
             mkdir($newDir, 0777, true);
             chmod($newDir, 0777);

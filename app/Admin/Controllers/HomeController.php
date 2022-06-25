@@ -2,17 +2,16 @@
 
 namespace App\Admin\Controllers;
 
+use App\Console\Commands\RankList;
 use App\Http\Controllers\Controller;
 use App\Models\CommConf;
 use Encore\Admin\Controllers\Dashboard;
 use Encore\Admin\Layout\Column;
 use Encore\Admin\Layout\Content;
 use Encore\Admin\Layout\Row;
-use Encore\Admin\Form;
 use Encore\Admin\Widgets\Box;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Response;
 
 class HomeController extends Controller
 {
@@ -37,8 +36,42 @@ class HomeController extends Controller
 
                     $form->disableReset();
 
-                    $column->append((new Box("快速操作", $form))->style('success'));
-                    $column->append((new Box("其它操作"))->style('danger'));
+                    $column->append((new Box("评论开关", $form))->style('success'));
+
+                    $url = config('app.url').'/inner/cache/clearcache/';
+                    $html = <<<EOF
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="0">首页列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="7">公共配置</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="1">演员影片列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="2">系列影片列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="3">片商影片列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="4">片单影片列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="5">标签分类列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="6">影片排行榜列表(慢)</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="8">演员排行榜列表(慢)</btn>
+<script>
+$('.cache-index-refresh').click(function() {
+  var id = $(this).attr('data-content');
+    $.ajax({
+        method: 'post',
+        url: '{$url}'+id,
+        data: {
+            _method:'post',
+            _token:document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        success: function (data) {
+            console.log(data);
+            if (data.code === 200){
+                $.admin.toastr.success(data.msg, '', {positionClass:"toast-top-center"});
+            }else{
+                $.admin.toastr.error(data.msg, '', {positionClass:"toast-top-center"});
+            }
+        }
+    });
+})
+</script>
+EOF;
+                    $column->append((new Box("网站缓存", $html))->style('success'));
 
                 });
 
@@ -58,25 +91,55 @@ class HomeController extends Controller
         return response()->redirectTo('/admin');
     }
 
-    public static function disableDetailConf(&$form)
+    public function clearCache($type, Request $request)
     {
-        $form->tools(function (Form\Tools $tools) {
-            // 去掉`列表`按钮
-            $tools->disableList();
-            // 去掉`删除`按钮
-            $tools->disableDelete();
-            // 去掉`查看`按钮
-            $tools->disableView();
-        });
-        $form->footer(function ($footer) {
-            // 去掉`重置`按钮
-            $footer->disableReset();
-            // 去掉`查看`checkbox
-            $footer->disableViewCheck();
-            // 去掉`继续编辑`checkbox
-            $footer->disableEditingCheck();
-            // 去掉`继续创建`checkbox
-            $footer->disableCreatingCheck();
-        });
+        switch ($type) {
+            case 0:
+                $this->clearAll('home:*');
+                break;
+            case 1:
+                $this->clearAll('actor_detail_products:*');
+                break;
+            case 2:
+                $this->clearAll('series_detail_products:*');
+                break;
+            case 3:
+                $this->clearAll('film_company_detail_products:*');
+                break;
+            case 4:
+                $this->clearAll('number_detail_products:*');
+                break;
+            case 5:
+                $this->clearAll('movie:lists:catecory:*');
+                $this->clearAll('movie:count:catecory:*');
+                break;
+            case 6:
+                (new RankList())->movie();
+                break;
+            case 7:
+                $this->clearAll('Conf:*');
+                break;
+            case 8:
+                (new RankList())->actor();
+                break;
+            default:
+                return response()->json([
+                    'code' => 404,
+                    'msg' => '找不到此类型...'
+                ]);
+        }
+        return response()->json([
+            'code' => 200,
+            'msg' => '缓存清除成功'
+        ]);
+    }
+
+    public function clearAll($cache)
+    {
+        $prefix = config('database.redis.options.prefix');
+        $keys = Redis::keys($cache);
+        foreach ($keys as $key) {
+            Redis::del(str_replace($prefix, '', $key));
+        }
     }
 }

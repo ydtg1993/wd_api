@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Admin\Controllers;
+namespace App\Admin\Controllers\Account;
 
 
 use App\Admin\Actions\Post\UnLock;

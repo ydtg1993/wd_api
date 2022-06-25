@@ -36,14 +36,7 @@ class ReportController extends AdminController
         $grid->disableCreateButton();
         $grid->disableExport();
         $grid->disableRowSelector();
-        $grid->actions(function ($actions) {
-            // 去掉删除
-            $actions->disableDelete();
-            // 去掉查看
-            $actions->disableView();
-            // 去掉修改
-            $actions->disableEdit();
-        });
+        $grid->disableActions();
         /*查询匹配*/
         $grid->filter(function($filter){
             // 在这里添加字段过滤器

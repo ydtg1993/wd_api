@@ -3,11 +3,12 @@
 namespace App\Admin\Controllers;
 
 use App\Models\Announcement;
+use DLP\DLPViewer;
 use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
-use Encore\Admin\Show;
 use Encore\Admin\Layout\Content;
+use Illuminate\Http\Request;
 
 class AnnounceController extends AdminController
 {
@@ -26,7 +27,7 @@ class AnnounceController extends AdminController
     protected function grid()
     {
         $grid = new Grid(new Announcement());
-
+        $grid->model()->orderBy('id','DESC');
         $grid->column('id', __('ID'))->sortable();
         $grid->column('uuid', 'uuid');
         $grid->column('title', '标题');
@@ -37,6 +38,7 @@ class AnnounceController extends AdminController
         $grid->column('created_at', __('创建时间'));
 
         /*配置*/
+        $grid->disableCreateButton();
         $grid->disableExport();
         $grid->disableRowSelector();
         /*查询匹配*/
@@ -46,55 +48,64 @@ class AnnounceController extends AdminController
             $filter->equal('title', '标题');
             $filter->between('created_at', '创建时间')->datetime();
         });
+        $url = config('app.url') . '/inner/announce';
+        DLPViewer::makeHeadPlaneAction($grid, [
+            ['document_id' => 'CAF', 'title' => '新增', 'url' => $url . '/create', 'xhr_url' => $url]
+        ]);
+        DLPViewer::makeRowPlaneAction($grid, [
+            ['document_class' => 'CEF', 'title' => '编辑', 'url' => $url . '/{id}/edit', 'xhr_url' => $url . '/{id}', 'method' => 'POST'],
+        ], ['edit', 'view']);
         return $grid;
     }
 
-    /**
-     * Make a show builder.
-     *
-     * @param mixed   $id
-     * @return Show
-     */
-    protected function detail($id)
-    {
-        $show = new Show(Announcement::findOrFail($id));
-
-        $show->field('id', __('ID'));
-        $show->field('created_at', __('Created at'));
-        $show->field('updated_at', __('Updated at'));
-
-        return $show;
-    }
-
-    /**
-     * Create interface.
-     *
-     * @param Content $content
-     * @return Content
-     */
     public function create(Content $content)
     {
-        return $content
-            ->header($this->title.'-创建')
-            ->description($this->title.'-创建')
+        $content = $content
             ->body($this->form());
+        return DLPViewer::makeForm($content);
     }
 
-    /**
-     * Edit interface.
-     *
-     * @param mixed $id
-     * @param Content $content
-     * @return Content
-     */
+    public function store()
+    {
+        $request = Request::capture();
+        $data = $request->all();
+        try {
+            Announcement::insert([
+                'uuid'=>md5(time()),
+                'title'=>$data['title'],
+                'content'=>$data['content'],
+                'display_type'=>$data['display_type'],
+                'url'=>$data['url']
+            ]);
+        }catch (\Exception $e){
+            return DLPViewer::result(false, $e->getMessage());
+        }
+        return DLPViewer::result(true);
+    }
+
     public function edit($id, Content $content)
     {
-        return $content
-            ->header($this->title.'-修改')
-            ->description($this->title.'-修改')
+        $content = $content
             ->body($this->form($id)->edit($id));
+        return DLPViewer::makeForm($content);
     }
 
+    public function update($id)
+    {
+        $request = Request::capture();
+        $data = $request->all();
+        try {
+            Announcement::where('id',$id)->update([
+                'title'=>$data['title'],
+                'content'=>$data['content'],
+                'display_type'=>$data['display_type'],
+                'url'=>$data['url']
+            ]);
+        }catch (\Exception $e){
+            return DLPViewer::result(false, $e->getMessage());
+        }
+        return DLPViewer::result(true);
+    }
 
     /**
      * Make a form builder.
