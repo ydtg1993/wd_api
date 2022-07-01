@@ -61,4 +61,33 @@ class CommonController extends Controller
 
         return $dirname.'/' . $chunk_dir . '/' . $newFile;
     }
+
+    /**
+     * dot增减计算
+     * @param array $selected 过去已经选择
+     * @param array $select 已选择
+     * @return array [insert,delete]
+     */
+    public static function dotCalculate(array $selected,array $select)
+    {
+        $insert = [];
+        $delete = [];
+        $intersect = array_intersect($selected,$select);
+        if(count($intersect) == count($selected) && count($intersect) == count($select)){
+            return [$insert,$delete];
+        }
+        if(count($intersect) == count($selected) && count($intersect) < count($select)){
+            $insert = array_diff($select,$intersect);
+            return [$insert,$delete];
+        }
+        if(count($intersect) < count($selected) && count($intersect) == count($select)){
+            $delete = array_diff($selected,$intersect);
+            return [$insert,$delete];
+        }
+        if(count($intersect) < count($selected) && count($intersect) < count($select)){
+            $insert = array_diff($select,$intersect);
+            $delete = array_diff($selected,$intersect);
+            return [$insert,$delete];
+        }
+    }
 }

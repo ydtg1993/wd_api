@@ -48,6 +48,10 @@ class MovieActor extends Model
         $page = $data['page'] ?? 1;
         $pageSize = $data['pageSize'] ?? 10;
         $cid = $data['cid'] ?? 0; // 1.
+        $cache_ext = ['cid' => $cid, 'page' => $page, 'pageSize' => $pageSize];
+        if($data['gender'] != ''){
+            $cache_ext['gender'] = ($data['gender'] == 1) ? 1 : 0;
+        }
         $reData = RedisCache::getCacheData('actor', 'movie:actor:list:', function () use ($data, $cid, $page, $pageSize) {
             $reData = ['list' => [], 'sum' => 0];
             if ($cid > 0) {
@@ -56,6 +60,14 @@ class MovieActor extends Model
                 $actorCategoryAssociateDb = $actorCategoryAssociateDb->leftJoinSub($movieDb, 'movie_actor', function ($join) {
                     $join->on('movie_actor.id', '=', 'movie_actor_category_associate.aid');
                 });
+                if($data['gender'] != ''){
+                    $gender = ($data['gender'] == 1) ? 1 : 0;
+                    if($gender == 1){
+                        $actorCategoryAssociateDb->where('movie_actor.sex','♂');
+                    }else{
+                        $actorCategoryAssociateDb->where('movie_actor.sex','♀')->orWhere('movie_actor.sex','');
+                    }
+                }
                 $reData['sum'] = $actorCategoryAssociateDb->count();
                 $actorCategoryAssociateList = $actorCategoryAssociateDb->orderBy('movie_actor.movie_sum', 'desc')
                     ->orderBy('movie_actor.like_sum', 'desc')
@@ -89,7 +101,7 @@ class MovieActor extends Model
 
             return $reData;
 
-        }, ['cid' => $cid, 'page' => $page, 'pageSize' => $pageSize], $isCache);
+        }, $cache_ext, $isCache);
 
         return $reData;
     }
@@ -97,5 +109,10 @@ class MovieActor extends Model
     public function names()
     {
         return $this->hasMany(MovieActorName::class, 'aid', 'id');
+    }
+
+    public function categories()
+    {
+        return$this->hasMany(MovieActorCategoryAssociate::class,'aid','id');
     }
 }

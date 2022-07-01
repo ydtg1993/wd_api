@@ -24,7 +24,7 @@ class MovieNumber extends Model
     }
 
     /**
-     * 相似度查询 
+     * 相似度查询
      */
     public static function getIdWithName($name)
     {
@@ -37,7 +37,7 @@ class MovieNumber extends Model
     }
 
     /**
-     * 根据id来获取数量 
+     * 根据id来获取数量
      */
     public static function getCountById($id)
     {
@@ -47,5 +47,10 @@ class MovieNumber extends Model
             $total = $res[0]->movie_sum;
         }
         return $total;
+    }
+
+    public function numbers()
+    {
+        return $this->hasMany(MovieNumberAss::class,'nid','id');
     }
 }

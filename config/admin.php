@@ -22,7 +22,7 @@ return [
     | `img` tag, eg '<img src="http://logo-url" alt="Admin logo">'.
     |
     */
-    'logo' => '<b>黄豆瓣管理端</b>',
+    'logo' => '<b>黄豆瓣</b>',
 
     /*
     |--------------------------------------------------------------------------
@@ -58,7 +58,7 @@ return [
     */
     'route' => [
 
-        'prefix' => env('ADMIN_ROUTE_PREFIX', 'admin'),
+        'prefix' => env('ADMIN_ROUTE_PREFIX', 'inner'),
 
         'namespace' => 'App\\Admin\\Controllers',
 
@@ -249,7 +249,7 @@ return [
     | Set a default avatar for newly created users.
     |
     */
-    'default_avatar' => 'http://uat-pc.9g1npyjn.com/favicon.ico',
+    'default_avatar' => '/vendor/laravel-admin/AdminLTE/dist/img/user2-160x160.jpg',
 
     /*
     |--------------------------------------------------------------------------
@@ -275,7 +275,7 @@ return [
     |    "skin-red", "skin-red-light", "skin-black", "skin-black-light".
     |
     */
-    'skin' => env('ADMIN_SKIN', 'skin-blue-light'),
+    'skin' => env('ADMIN_SKIN', 'skin-yellow'),
 
     /*
     |--------------------------------------------------------------------------
@@ -383,7 +383,7 @@ return [
     | The global Grid action display class.
     |--------------------------------------------------------------------------
     */
-    'grid_action_class' => Encore\Admin\Grid\Displayers\DropdownActions::class,
+    'grid_action_class' => \Encore\Admin\Grid\Displayers\ContextMenuActions::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -405,14 +405,13 @@ return [
     |
     */
     'extensions' => [
-        'wang-editor' => [
-
-            // 如果要关掉这个扩展，设置为false
+        'ckeditor' => [
+            //Set to false if you want to disable this extension
             'enable' => true,
-
-            // 编辑器的配置
+            // Editor configuration
             'config' => [
-
+                'lang'   => 'zh-CN',
+                'height' => 200,
             ]
         ]
     ],

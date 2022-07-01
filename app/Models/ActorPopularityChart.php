@@ -50,12 +50,14 @@ class ActorPopularityChart extends Model
                 'actor_popularity_chart.new_movie_seen',
                 'actor_popularity_chart.new_movie_score',
                 'actor_popularity_chart.new_movie_score_people',
-                'actor_popularity_chart.rank_float')
+                'actor_popularity_chart.rank_float',
+                'actor_popularity_chart.rank')
             ->get()->toArray();
 
         $temp = [];
         foreach ($actors as $val) {
             $actor = MovieActor::formatList((array)$val,true);
+            $actor['rank'] = $val['rank'];
             $actor['float'] = $val['rank_float'];
             $temp[] = $actor;
         }

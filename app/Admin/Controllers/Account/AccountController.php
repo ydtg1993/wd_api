@@ -60,8 +60,6 @@ class AccountController extends AdminController
         /*配置*/
         $grid->disableCreateButton();
         $grid->disableExport();
-//        $grid->disableBatchActions();
-//        $grid->disableRowSelector();
         $grid->actions(function ($actions) {
             // 去掉删除
             $actions->disableDelete();

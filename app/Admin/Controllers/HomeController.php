@@ -41,6 +41,8 @@ class HomeController extends Controller
                     $url = config('app.url').'/inner/cache/clearcache/';
                     $html = <<<EOF
 <btn class="btn btn-info btn-sm cache-index-refresh" data-content="0">首页列表</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="10">广告位</btn>
+<btn class="btn btn-info btn-sm cache-index-refresh" data-content="9">首页轮播图</btn>
 <btn class="btn btn-info btn-sm cache-index-refresh" data-content="7">公共配置</btn>
 <btn class="btn btn-info btn-sm cache-index-refresh" data-content="1">演员影片列表</btn>
 <btn class="btn btn-info btn-sm cache-index-refresh" data-content="2">系列影片列表</btn>
@@ -121,6 +123,12 @@ EOF;
                 break;
             case 8:
                 (new RankList())->actor();
+                break;
+            case 9:
+                $this->clearAll('carousel:*');
+                break;
+            case 10:
+                $this->clearAll('ads_list:*');
                 break;
             default:
                 return response()->json([

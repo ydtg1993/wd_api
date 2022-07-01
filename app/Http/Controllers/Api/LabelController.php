@@ -2,21 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Services\Logic\Comm\ConfLogic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\MessageBag;
 use App\Models\MovieLabel;
-use App\Models\MovieLabelCategory;
 use App\Services\Logic\Common;
 use App\Services\Logic\RedisCache;
 
 class LabelController extends BaseController
 {
-    private $cacheKey = 'label_lists';
+    private $cacheKey = 'label_list';
     private $cacheClassKey = 'label_classes';
 
 
@@ -53,6 +48,9 @@ class LabelController extends BaseController
                 $tmp['id'] = $v->id;
                 $tmp['cids'] = $v->cids;
                 $tmp['children'] = isset($min[$v->id])?$min[$v->id]:[];
+                if(empty($tmp['children'])){
+                    continue;
+                }
                 $data[] = $tmp;
 
                 //写入缓存

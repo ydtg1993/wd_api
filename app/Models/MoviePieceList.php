@@ -36,4 +36,9 @@ class MoviePieceList extends Model
         $reData['created_at'] = ($data['created_at']??'') == '' ? '':date('Y-m-d H:i;s',strtotime(($data['created_at']??'')));//格式化一下
         return $reData;
     }
+
+    public function numbers()
+    {
+        return $this->hasMany(PieceListMovie::class,'plid','id');
+    }
 }

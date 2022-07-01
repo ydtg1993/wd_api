@@ -21,7 +21,7 @@ class AdsController extends BaseController
 {
 
     /**
-     * 读取列表 
+     * 读取列表
      */
     public function getList(Request $request)
     {
@@ -31,17 +31,15 @@ class AdsController extends BaseController
         $data = $db->lists($ty);
 
         $httpUrl = Common::getImgDomain();
-        $httpUrl = str_replace('resources','', $httpUrl);
 
         //处理图片url
         foreach($data as $key=>$val)
         {
             if(stristr($val->photo,"http")===false){
                 //处理图片
-
-                $val->photo = $httpUrl.$val->photo;
+                $val->photo = $httpUrl.str_replace('/uploads','advertisement',$val->photo);
             }
-            
+
             $data[$key] = $val;
         }
 

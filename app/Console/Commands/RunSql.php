@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Movie;
-use App\Models\MovieCategory;
+use App\Models\MovieActor;
+use App\Models\MovieActorName;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -43,6 +43,7 @@ class RunSql extends Command
         $this->admin();
        $this->upDB();
        $this->upRank();
+        $this->resolveDB();
     }
 
     private function admin()
@@ -67,6 +68,14 @@ INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `pe
 INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (25, 24, 0, '热搜词管理', 'fa-search-plus', '/hotwords', '*', '2022-06-17 10:12:25', '2022-06-17 10:12:25');
 INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (26, 24, 0, '短评须知', 'fa-bookmark-o', '/notes', '*', '2022-06-17 10:13:42', '2022-06-17 10:13:42');
 INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (27, 24, 0, 'APP分享', 'fa-share-alt', '/share', '*', '2022-06-17 10:14:08', '2022-06-17 10:14:08');
+
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (28, 14, 14, '片商管理', 'fa-university', '/manage_company', '*', '2022-06-28 13:54:56', '2022-07-01 13:40:38');
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (29, 14, 15, '系列管理', 'fa-list-ol', '/manage_series', '*', '2022-06-28 15:09:42', '2022-07-01 13:40:38');
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (32, 14, 16, '导演管理', 'fa-tripadvisor', '/manage_director', '*', '2022-06-28 15:21:50', '2022-07-01 13:40:38');
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (33, 14, 13, '分类管理', 'fa-cubes', '/manage_category', '*', '2022-06-28 15:47:44', '2022-07-01 13:40:38');
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (34, 14, 12, '演员管理', 'fa-female', '/manage_actor', '*', '2022-06-29 15:48:12', '2022-07-01 13:40:38');
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (35, 14, 11, '番号管理', 'fa-bold', '/manage_numbers', '*', '2022-07-01 13:40:24', '2022-07-01 13:40:38');
+INSERT INTO `admin_menu`(`id`, `parent_id`, `order`, `title`, `icon`, `uri`, `permission`, `created_at`, `updated_at`) VALUES (36, 14, 12, '片单', 'fa-bookmark-o', '/manage_pieces', '*', '2022-07-01 15:48:53', '2022-07-01 15:49:13');
 EOF;
         \Illuminate\Support\Facades\DB::unprepared($sql);
     }
@@ -74,9 +83,14 @@ EOF;
     private function upDB()
     {
         $sql = <<<EOF
+DROP TABLE `article_comment`;
+DROP TABLE `article_tag`;
+DROP TABLE `articles`;
+DROP TABLE `batch_comment_script`;
 ALTER TABLE `actor_popularity_chart` add column `rank` int(11) NOT NULL DEFAULT '0' COMMENT '当月排名';
 ALTER TABLE `actor_popularity_chart` add column `rank_float` int(11) NOT NULL DEFAULT '0' COMMENT '当月排名较上月浮动';
 ALTER TABLE `hot_keyword` add column `times` int(11) NOT NULL DEFAULT '0' COMMENT '搜索次数';
+ALTER TABLE `movie_actor` add column `names` json DEFAULT NULL COMMENT '演员别名';
 EOF;
         \Illuminate\Support\Facades\DB::unprepared($sql);
 
@@ -126,9 +140,29 @@ EOF;
             date('2022-04-01'),
             date('2022-05-01'),
             date('2022-06-01'),
+            date('2022-07-01'),
         ];
         foreach ($ts as $t){
             (new RankList())->actorHotProcess(strtotime($t));
+        }
+    }
+
+    private function resolveDB()
+    {
+        $page = 0;
+        $limit = 500;
+        while(true){
+            $ids = MovieActor::offset($page*$limit)->limit($limit)->pluck('id')->all();
+            if(empty($ids)){
+                break;
+            }
+            foreach ($ids as $id){
+               $names = MovieActorName::where('aid',$id)->pluck('name')->all();
+               if(empty($names)){
+                   continue;
+               }
+               MovieActor::where('id',$id)->update(['names'=>json_encode($names)]);
+            }
         }
     }
 }

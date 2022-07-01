@@ -145,7 +145,7 @@ class AdsListController extends AdminController
             }
             AdsList::where('id', $id)->update($up);
         } catch (\Exception $e) {
-            return DLPViewer::result(false, '失败信息');
+            return DLPViewer::result(false, $e->getMessage());
         }
         return DLPViewer::result(true);
     }

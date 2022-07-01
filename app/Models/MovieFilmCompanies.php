@@ -88,4 +88,14 @@ class MovieFilmCompanies extends Model
 
         return $reData;
     }
+
+    public function categories()
+    {
+        return $this->hasMany(MovieFilmCompaniesCategoryAssociate::class,'film_companies_id','id');
+    }
+
+    public function numbers()
+    {
+        return $this->hasMany(MovieFilmCompaniesAss::class,'film_companies_id','id');
+    }
 }

@@ -97,6 +97,13 @@ return [
             'level' => 'error',
             'days' => 30,
         ],
+
+        'elastic' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/elastic/error.log'),
+            'level' => 'error',
+            'days' => 7,
+        ],
     ],
 
 ];

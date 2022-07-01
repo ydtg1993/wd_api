@@ -137,7 +137,7 @@ EOF;
 <div style="display: grid;grid-template-columns: 50% 50%;grid-template-rows: 20px 20px;padding: 3px;grid-column-gap: 7px;">
     <div>
         <label for="name" class="col-sm-4 asterisk control-label">名称</label>
-        <div>{$movie->name}</div>
+        <div style="text-overflow: ellipsis;overflow: hidden;display: block;white-space: nowrap;width: 120px;" title="{$movie->name}">{$movie->name}</div>
     </div>
     <div>
         <label for="name" class="col-sm-4 control-label">番号</label>
@@ -234,9 +234,9 @@ EOF;
 
     private function oriFiles($ori)
     {
-        $big_cover = $ori['big_cover'] ? 'https://'.$ori['big_cover'] : 'javascript:void(0)';
-        $small_cover = $ori['small_cover'] ? 'https://'.$ori['small_cover'] : 'javascript:void(0)';
-        $trailer = $ori['trailer'] ? 'https://'.$ori['trailer'] : 'javascript:void(0)';
+        $big_cover = isset($ori['big_cover']) && $ori['big_cover'] ? 'https://'.$ori['big_cover'] : 'javascript:void(0)';
+        $small_cover = isset($ori['small_cover']) && $ori['small_cover'] ? 'https://'.$ori['small_cover'] : 'javascript:void(0)';
+        $trailer = isset($ori['trailer']) && $ori['trailer'] ? 'https://'.$ori['trailer'] : 'javascript:void(0)';
         return <<<EOF
 <ul>
 <li>大封面 <a href="{$big_cover}" target="_blank" title="{$big_cover}"> 查看 </a></li>
@@ -263,6 +263,9 @@ EOF;
 
     private function oriMap($ori)
     {
+        if(!isset($ori['preview_img'])){
+            return;
+        }
         $html = '<ul>';
         foreach ($ori['preview_img'] as $k=>$m){
             if(isset($ori['preview_big_img']) && isset($ori['preview_big_img'][$k])){

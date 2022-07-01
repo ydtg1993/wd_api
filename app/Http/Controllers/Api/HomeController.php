@@ -11,6 +11,8 @@ namespace App\Http\Controllers\Api;
 use App\Models\ActorPopularityChart;
 use App\Models\Movie;
 use App\Models\RecommendMovie;
+use App\Services\DataLogic\DL;
+use App\Services\DataLogic\MovieStruct;
 use App\Services\Logic\Common;
 use App\Services\Logic\Home\HomeLogic;
 use App\Services\Logic\Search\SearchLogic;
@@ -44,6 +46,49 @@ class HomeController extends BaseController
         return $this->sendJson($reData);
     }
 
+    public function recent(Request $request)
+    {
+        $page = (int)$request->input('page');
+
+        $result = ['list'=>[],'sum'=>1000];
+        $cache = "recent:movie:".$page;
+        $record = Redis::get($cache);
+        if($record){
+            $ids = (array)json_decode($record);
+            $data = DL::getInstance(MovieStruct::class)->get($ids);
+            $result['list'] = Movie::structList($data);
+            return $this->sendJson($result);
+        }
+        /*生成缓存*/
+        $offset = 0;
+        $limit = 500;
+        $page = 0;
+        $pageSize = 10;
+        while (true){
+            if($offset>2){
+                break;
+            }
+            $ids = Movie::where(['status'=>1,'is_up'=>1])->
+            orderBy('updated_at','DESC')->offset($offset*$limit)->limit($limit)->pluck('id')->all();
+            if(empty($ids)){
+                break;
+            }
+            $chunks = array_chunk($ids,$pageSize);
+            foreach ($chunks as $chunk){
+                $cache = "recent:movie:".$page;
+                Redis::del($cache);
+                Redis::setex($cache, 3600, json_encode($chunk));
+                $page++;
+            }
+            $offset++;
+        }
+        $record = Redis::get($cache);
+        $ids = (array)json_decode($record);
+        $data = DL::getInstance(MovieStruct::class)->get($ids);
+        $result['list'] =  Movie::structList($data);
+        return $this->sendJson($result);
+    }
+
     /**
      * 首页热门视频轮播推荐
      * @param Request $request
@@ -56,6 +101,10 @@ class HomeController extends BaseController
 
         $cache = "carousel:{$category}";
         $record = Redis::get($cache);
+        if($record){
+            $record = (array)json_decode($record,true);
+            return $this->sendJson($record);
+        }
         $recommends = RecommendMovie::where(['recommend_movie.status'=>0,'recommend_movie.category'=>$category,'recommend_movie.ctime'=>$today])
             ->join('movie','movie.id','=','recommend_movie.mid')
             ->orderBy('recommend_movie.hot','DESC')
@@ -65,6 +114,7 @@ class HomeController extends BaseController
         foreach ($recommends as &$recommend){
             $recommend['photo'] = Common::getImgDomain().$recommend['photo'];
         }
+        Redis::setex($cache, 3600 * 24, json_encode($recommends));
         return $this->sendJson($recommends);
     }
 

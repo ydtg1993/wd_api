@@ -37,7 +37,7 @@ class Movie extends Model
     public static function getMovieList($data)
     {
         $page = $data['page'] ?? 1;
-        $pageSize = $data['pageSize'] == 12 ? 12:10;
+        $pageSize = $data['pageSize'] == 12 ? 12 : 10;
         $cid = $data['cid'] ?? 0;
 
         //判断搜索条件
@@ -85,9 +85,9 @@ class Movie extends Model
         $reData = ['list' => [], 'sum' => 0];
 
         //如果包含分类条件
-        $res=[];
-        $cache = "home:".md5($where.$orderby).":".$page."_".$pageSize;
-        $cache_nums = "home:".md5($where.$orderby).":nums";
+        $res = [];
+        $cache = "home:" . md5($where . $orderby) . ":" . $page . "_" . $pageSize;
+        $cache_nums = "home:" . md5($where . $orderby) . ":nums";
 
         $record = Redis::get($cache);
         $nums = Redis::get($cache_nums);
@@ -102,7 +102,7 @@ class Movie extends Model
             //加工数据
             $rows = Common::objectToArray($rows);
             foreach ($rows as $v) {
-                $res[] = Movie::formatList($v,true);
+                $res[] = Movie::formatList($v, true);
             }
             Redis::setex($cache, 7200, json_encode($res));
         } else {
@@ -129,7 +129,7 @@ class Movie extends Model
     public static function getMovieListBylabel($data)
     {
         $page = $data['page'] ?? 1;
-        $pageSize = $data['pageSize'] == 12 ? 12:10;
+        $pageSize = $data['pageSize'] == 12 ? 12 : 10;
         $lid = $data['cid'] ?? 0;
         $gid = $data['gid'] ?? 0;
 
@@ -203,23 +203,23 @@ class Movie extends Model
         }
 
         //如果包含分类条件
-        $cache = "home:" . md5($where . $orderby) . ":".$page."_".$pageSize;
+        $cache = "home:" . md5($where . $orderby) . ":" . $page . "_" . $pageSize;
         $cache_nums = "home:" . md5($where) . ":nums";
         $res = [];
         $record = Redis::get($cache);
-        if(!$record) {
+        if (!$record) {
             $rows = DB::select($selectSql);
             $rows = Common::objectToArray($rows);
             foreach ($rows as $v) {
                 $res[] = Movie::formatList($v);
             }
             Redis::setex($cache, 7200, json_encode($res));
-        }else{
+        } else {
             $res = json_decode($record, true);
         }
 
         $nums = Redis::get($cache_nums);
-        if(!$nums) {
+        if (!$nums) {
             $count = DB::select($countSql);
             $nums = $count[0]->nums;
             Redis::setex($cache_nums, 7200, $nums);
@@ -235,7 +235,7 @@ class Movie extends Model
      * 格式化影片列表数据
      * @param array $data
      */
-    public static function formatList($data = [],$addInfo=false)
+    public static function formatList($data = [], $addInfo = false)
     {
         $is_new_comment_day = ((strtotime($data['new_comment_time'] ?? '') - strtotime(date('Y-m-d 00:00:00'))) >= 0) ? 1 : 2;//最新评论时间减去 今日开始时间 如果大于0 则今日新评论
         $is_new_comment_day = ($is_new_comment_day == 2) ? (
@@ -270,7 +270,7 @@ class Movie extends Model
         $reData['big_cove'] = $big_cove == '' ? '' : (Common::getImgDomain() . $big_cove);
         $reData['is_short_comment'] = $data['is_short_comment'] ?? 0;
 
-        if($addInfo){
+        if ($addInfo) {
             $reData['info']['score_people'] = $data['score_people'];
             $reData['info']['wan_see'] = $data['wan_see'];
             $reData['info']['seen'] = $data['seen'];
@@ -278,6 +278,43 @@ class Movie extends Model
         }
 
         return $reData;
+    }
+
+    public static function structList($data)
+    {
+        $list = [];
+        foreach ($data as $d) {
+            $is_new_comment_day = ((strtotime($d['new_comment_time'] ?? '') - strtotime(date('Y-m-d 00:00:00'))) >= 0) ? 1 : 2;//最新评论时间减去 今日开始时间 如果大于0 则今日新评论
+            $is_new_comment_day = ($is_new_comment_day == 2) ? (
+            (((strtotime($d['new_comment_time'] ?? '') - (strtotime(date('Y-m-d 00:00:00')) - (60 * 60 * 24))) >= 0) ? 3 : 2)
+            ) : 1;
+
+            $is_flux_linkage_day = ((strtotime($d['flux_linkage_time'] ?? '') - strtotime(date('Y-m-d 00:00:00'))) >= 0) ? 1 : 2;
+            $is_flux_linkage_day = ($is_flux_linkage_day == 2) ? (
+            (((strtotime($d['flux_linkage_time'] ?? '') - (strtotime(date('Y-m-d 00:00:00')) - (60 * 60 * 24))) >= 0) ? 3 : 2)
+            ) : 1;
+
+            $small_cover = $d['small_cover'] ?? '';
+            $big_cove = $d['big_cove'] ?? '';
+            $list[] = [
+                'id' => $d['id'] ?? 0,
+                'name' => $d['name'] ?? '',
+                'number' => $d['number'] ?? '',
+                'release_time' => $d['release_time'] ?? '',
+                'created_at' => $d['created_at'] ?? '',
+                'is_download' => $d['is_download'] ?? 1,//状态 1.不可下载  2.可下载
+                'is_subtitle' => $d['is_subtitle'] ?? 1,//状态 1.不含字幕  2.含字幕
+                'is_hot' => $d['is_hot'] ?? 1,//状态 1.普通  2.热门
+                'is_new_comment' => $is_new_comment_day,//状态 1.今日新评  2.无状态 3.昨日新评
+                'is_flux_linkage' => $is_flux_linkage_day,//状态 1.今日新种  2.无状态 3.昨日新种
+                'comment_num' => $d['comment_num'] ?? 0,
+                'score' => $d['score'] ?? 0,
+                'small_cover' => $small_cover == '' ? '' : (Common::getImgDomain() . $small_cover),
+                'big_cove' => $big_cove == '' ? '' : (Common::getImgDomain() . $big_cove),
+                'is_short_comment' => $d['is_short_comment'] ?? 0,
+            ];
+        }
+        return $list;
     }
 
     public function labels()

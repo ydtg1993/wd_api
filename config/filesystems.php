@@ -80,7 +80,7 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/public/resources'),
             'visibility' => 'public',
-            'url' => env('IMAGE_DOMAIN', '').'/resources/',
+            'url' => env('ADMIN_URL', '').'/resources/',
         ],
     ],
 

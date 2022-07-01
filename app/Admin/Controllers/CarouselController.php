@@ -108,7 +108,7 @@ class CarouselController extends AdminController
                     RecommendMovie::class,
                     $id,
                     'photo',
-                    'recommend_movie');
+                    'recommend_movie',64);
                 RecommendMovie::where('id', $id)->update(['photo'=>$photo]);
             }
         }catch (\Exception $e){

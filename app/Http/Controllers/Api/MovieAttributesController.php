@@ -38,6 +38,7 @@ class MovieAttributesController extends BaseController
 
         $template['page'] = 1;
         $template['pageSize'] = 10;
+        $template['gender'] = '';
         $data = $this->paramFilter($template,$data);
         if($data  === false)
         {

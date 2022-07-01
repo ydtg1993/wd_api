@@ -89,4 +89,13 @@ class MovieSeries extends Model
         return $reData;
     }
 
+    public function categories()
+    {
+        return $this->hasMany(MovieSeriesCategoryAssociate::class,'series_id','id');
+    }
+
+    public function numbers()
+    {
+        return $this->hasMany(MovieSeriesAss::class,'series_id','id');
+    }
 }

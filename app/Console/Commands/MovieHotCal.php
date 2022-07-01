@@ -12,6 +12,7 @@ use App\Models\UserWantSeeMovie;
 use Elasticsearch\ClientBuilder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class MovieHotCal extends Command
 {
@@ -33,7 +34,7 @@ class MovieHotCal extends Command
      * 图片路径切分
      * @var int
      */
-    protected $chunk = 256;
+    protected $chunk = 64;
 
     /**
      * Create a new command instance.
@@ -52,6 +53,7 @@ class MovieHotCal extends Command
      */
     public function handle()
     {
+        $this->clearAll('carousel:*');
         $categories = MovieCategory::where('status', 1)->pluck('id')->all();
         $timeline = date('Y-m-d', strtotime("-2 day"));
         $today = date('Y-m-d 00:00:00');
@@ -63,10 +65,20 @@ class MovieHotCal extends Command
                 ->orderBy('pv', 'desc')
                 ->orderBy('mid', 'desc')
                 ->select(DB::raw('count(mid) as pv, mid'))
-                ->limit(300)
+                ->limit(100)
                 ->get()->toArray();
             if (empty($logs)) {
-                continue;
+                $logs = MovieLog::where('cid', $category)
+                    ->where('created_at', '>', date('Y-m-d', strtotime("-7 day")))
+                    ->groupBy('mid')
+                    ->orderBy('pv', 'desc')
+                    ->orderBy('mid', 'desc')
+                    ->select(DB::raw('count(mid) as pv, mid'))
+                    ->limit(100)
+                    ->get()->toArray();
+                if (empty($logs)) {
+                    continue;
+                }
             }
             foreach ($logs as &$log) {
                 $mid = $log['mid'];
@@ -126,6 +138,15 @@ class MovieHotCal extends Command
                 }
                 @rmdir($path);
             }
+        }
+    }
+
+    private function clearAll($cache)
+    {
+        $prefix = config('database.redis.options.prefix');
+        $keys = Redis::keys($cache);
+        foreach ($keys as $key) {
+            Redis::del(str_replace($prefix, '', $key));
         }
     }
 }
